@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murfs and Murfery</title>
+<style>
+  :root {
+    --bg: #14100d;
+    --panel: #241c16;
+    --panel-border: #4a3a28;
+    --text: #f1e6d2;
+    --text-dim: #c9b896;
+    --accent: #caa15d;
+    --accent-dim: #8a6d1f;
+    --danger: #b23a3a;
+    --penalty-empty: #4a2b2b;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: Georgia, 'Times New Roman', serif;
+  }
+
+  #app {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 16px;
+    min-height: 100vh;
+  }
+
+  h1.title {
+    text-align: center;
+    font-size: 1.6rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 4px 0 16px;
+  }
+
+  /* ---- HUD ---- */
+  #hud {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+  }
+
+  .hud-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .progress-wrap {
+    flex: 1;
+  }
+
+  .progress-track {
+    position: relative;
+    background: #100c09;
+    border: 1px solid var(--panel-border);
+    border-radius: 999px;
+    height: 14px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-dim), var(--accent));
+    transition: width 0.4s ease;
+  }
+
+  .zone-marker {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--text);
+    opacity: 0.55;
+  }
+
+  .penalty-points {
+    font-size: 2rem;
+    white-space: nowrap;
+    letter-spacing: 2px;
+  }
+
+  .penalty-mark-full { color: var(--danger); }
+  .penalty-mark-empty { color: var(--penalty-empty); }
+
+
+  /* ---- Scene ---- */
+  #scene {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+
+  #scene img {
+    width: 100%;
+    display: block;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    background: #100c09;
+  }
+
+  #scene-body {
+    padding: 16px;
+  }
+
+  #scene-name {
+    margin: 0 0 8px;
+    font-size: 1.2rem;
+    color: var(--accent);
+  }
+
+  #scene-description {
+    margin: 0 0 16px;
+    line-height: 1.5;
+    color: var(--text);
+  }
+
+  #choices {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .choice-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: #1c150f;
+    border: 1px solid var(--accent-dim);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 1rem;
+    padding: 10px 14px;
+    border-radius: 6px;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+
+  .choice-btn:hover {
+    background: #2a2018;
+    border-color: var(--accent);
+  }
+
+  .choice-btn.poofo-highlight {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-dim) inset;
+  }
+
+  .poofo-icon {
+    display: inline-flex;
+    flex-shrink: 0;
+    color: var(--accent);
+  }
+
+  .poofo-icon svg {
+    display: block;
+  }
+
+  #poofo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 14px;
+    text-align: center;
+  }
+
+  .poofo-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: transparent;
+    border: 1px dashed var(--accent-dim);
+    color: var(--accent);
+    font-family: inherit;
+    font-style: italic;
+    font-size: 0.9rem;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+
+  .poofo-btn:hover {
+    border-color: var(--accent);
+  }
+
+  .poofo-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  .poofo-hint {
+    font-style: italic;
+    color: var(--accent);
+    font-size: 0.9rem;
+    margin: 6px 0 0;
+  }
+
+  /* ---- Log ---- */
+  #log-wrap {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-top: 64px;
+    margin-bottom: 16px;
+  }
+
+  #log-wrap h2 {
+    margin: 0 0 8px;
+    font-size: 0.85rem;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+  }
+
+  #log {
+    max-height: 160px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .log-entry {
+    font-size: 0.85rem;
+    line-height: 1.4;
+    color: var(--text-dim);
+    border-left: 2px solid var(--accent-dim);
+    padding-left: 8px;
+  }
+
+  .log-entry.penalty { border-left-color: var(--danger); }
+  .log-entry.gameover { border-left-color: var(--danger); font-weight: bold; }
+  .log-entry.heal { border-left-color: var(--accent); }
+  .log-entry.zone { border-left-color: var(--accent-dim); font-style: italic; }
+
+  /* ---- End screens ---- */
+  #end-screen {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    overflow: hidden;
+    text-align: center;
+  }
+
+  #end-screen img {
+    width: 100%;
+    display: block;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+  }
+
+  #end-body {
+    padding: 24px 16px;
+  }
+
+  #end-title {
+    font-size: 1.5rem;
+    color: var(--accent);
+    margin: 0 0 12px;
+  }
+
+  #end-message {
+    color: var(--text-dim);
+    margin: 0 0 20px;
+    line-height: 1.5;
+  }
+
+  .primary-btn {
+    background: var(--accent);
+    color: #1b1410;
+    border: none;
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: bold;
+    padding: 10px 24px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+
+  .primary-btn:hover {
+    background: #e0b96e;
+  }
+
+  .hidden { display: none !important; }
+
+  /* ---- Zone transition modal ---- */
+  #zone-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    z-index: 1000;
+  }
+
+  #zone-modal {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 24px;
+    max-width: 420px;
+    width: 100%;
+    text-align: center;
+  }
+
+  #zone-modal h2 {
+    color: var(--accent);
+    margin: 0 0 12px;
+    font-size: 1.3rem;
+  }
+
+  #zone-modal p {
+    color: var(--text-dim);
+    margin: 0 0 20px;
+    line-height: 1.5;
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .modal-actions .primary-btn {
+    flex: 1;
+    min-width: 140px;
+  }
+
+  /* ---- Outcome modal ---- */
+  #outcome-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    z-index: 1000;
+  }
+
+  #outcome-modal {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 24px;
+    max-width: 420px;
+    width: 100%;
+    text-align: center;
+  }
+
+  #outcome-modal p {
+    color: var(--text-dim);
+    margin: 0 0 20px;
+    line-height: 1.5;
+  }
+
+  #outcome-modal-detail {
+    font-style: italic;
+    font-size: 0.85rem;
+    margin-top: -14px;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <h1 class="title">Murfs and Murfery</h1>
+
+  <div id="scene">
+    <img id="scene-image" src="" alt="">
+    <div id="scene-body">
+      <h2 id="scene-name"></h2>
+      <p id="scene-description"></p>
+      <div id="choices"></div>
+      <div id="poofo" class="hidden"></div>
+    </div>
+  </div>
+
+  <div id="hud">
+    <div class="hud-row">
+      <div class="progress-wrap">
+        <div class="progress-track">
+          <div class="progress-fill" id="progress-fill" style="width: 0%;"></div>
+          <div id="zone-markers"></div>
+        </div>
+      </div>
+      <div class="penalty-points" id="penalty-points"></div>
+    </div>
+  </div>
+
+  <div id="log-wrap">
+    <h2>triptik / log</h2>
+    <div id="log"></div>
+  </div>
+
+  <div id="end-screen" class="hidden">
+    <img id="end-image" src="" alt="">
+    <div id="end-body">
+      <h2 id="end-title"></h2>
+      <p id="end-message"></p>
+      <button class="primary-btn" id="restart-btn">Play Again</button>
+    </div>
+  </div>
+</div>
+
+<div id="outcome-modal-backdrop" class="hidden">
+  <div id="outcome-modal">
+    <p id="outcome-modal-message"></p>
+    <p id="outcome-modal-detail" class="hidden"></p>
+    <button class="primary-btn" id="outcome-modal-continue">Continue</button>
+  </div>
+</div>
+
+<div id="zone-modal-backdrop" class="hidden">
+  <div id="zone-modal">
+    <h2 id="zone-modal-title"></h2>
+    <p id="zone-modal-message"></p>
+    <div class="modal-actions">
+      <button class="primary-btn" id="zone-modal-large">Send crypto to the local Poofo</button>
+      <button class="primary-btn" id="zone-modal-small">Say an oath</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================================
+   CONTENT SECTION
+   ---------------------------------------------------------------------
+   Everything in this section is placeholder content meant to be replaced.
+   Names, descriptions, images, and choice labels can all be edited here
+   without touching the engine below.
+   ========================================================================= */
+
+const CONFIG = {
+  winDistance: 20,   // total distance needed to win
+  maxPenaltyPoints: 3, // penalty points (red Xs) that cause a game loss
+  minTravel: 1,      // min distance gained per action
+  maxTravel: 3,      // max distance gained per action
+  poofoAppearChance: 0.7, // odds the "Consult the local Poofo" option shows up at a location
+};
+
+// The journey is divided into three zones by progress. Each location
+// belongs to exactly one zone (see LOCATIONS below), and only locations in
+// the player's current zone are eligible to be picked next. Boundaries are
+// also drawn as markers on the progress bar.
+const ZONES = [
+  { id: 1, name: 'a new area', min: 0, max: 7 },
+  { id: 2, name: 'a new area', min: 8, max: 14 },
+  { id: 3, name: 'a new area', min: 15, max: 20 },
+];
+
+// Poofo's possible hints. Each time Poofo is consulted, one entry is picked
+// (weighted by optional `weight`, default 1 if omitted), and `accuracy` is
+// the probability that Poofo ends up highlighting the location's actual
+// "correct" choice (see getCorrectChoice below) rather than a random wrong
+// one. Edit text/accuracy/weight freely, and add or remove entries.
+const POOFO_HINTS = [
+  { text: 'The Poofo seems sure of himself.', accuracy: 0.9 },
+  { text: 'The Poofo lazily dispenses some guidance.', accuracy: 0.6 },
+  { text: 'The Poofo gives advice, but seems more interested in his off-track betting app.', accuracy: 0.1 },
+  { text: 'The Poofo gives advice, but seems more interested in checking his crypto portfolio.', accuracy: 0.1 },
+  { text: 'The Poofo mumbles something, but you\'re not sure if he\'s actually awake.', accuracy: 0.2 },
+];
+
+// Each choice has a single, fixed outcome (no randomness in *what*
+// happens — only *how far* the player travels stays random). outcome.type
+// is one of:
+//   'normal'   -> flavor text only
+//   'penalty'  -> gain 1 penalty point (a red X); 3 points ends the game
+//   'heal'     -> remove 1 penalty point (floor of 0)
+//   'gameover' -> quest ends immediately, regardless of penalty points
+// outcome.text is shown both in the journey log and in a modal right after
+// the choice is made.
+
+// Locations the player can land on. Each has a `zone` (1, 2, or 3 — see
+// ZONES above) and only locations in the player's current zone are
+// eligible to be picked next. `weight` controls relative likelihood among
+// locations within the same zone. Each choice carries a fixed
+// `outcome: { type, text }` (type is one of the four listed above).
+const LOCATIONS = [
+  // --- Zone 1 (progress 0-7) ---
+  {
+    id: 'loc1', name: 'The Restaurant', image: 'images/location-1.svg',
+    description: 'You arrive at a fine dining establishment.  A penguin shows you to your table.  Another enthusiastic penguin approaches.',
+    zone: 1, weight: 1,
+    choices: [
+      { label: 'Order something from the liquor bar', outcome: { type: 'gameover', text: 'It\'s too late.' } },
+      { label: 'Order a fried wonton sandwich', outcome: { type: 'gameover', text: 'It\'s too late' } },
+      { label: 'Ask about Tux', outcome: { type: 'normal', text: 'Puffins appreciates your inquiry.  You have a delightful meal, and continue...' } },
+    ],
+  },
+  {
+    id: 'loc2', name: 'The PawPaw Patch', image: 'images/location-2.svg',
+    description: 'You don\'t really know what this is...',
+    zone: 1, weight: 1,
+    choices: [
+      { label: 'Continue on', outcome: { type: 'normal', text: 'You continue.' } },
+      { label: 'Frolic', outcome: { type: 'normal', text: 'You frolic, then continue.' } },
+    ],
+  },
+  {
+    id: 'loc4', name: 'The racetrack', image: 'images/location-4.svg',
+    description: 'You approach a racetrack.  A number of cars seem lined up, ready to race.  You need to place a wager.',
+    zone: 1, weight: 1,
+    choices: [
+      { label: 'The MrweepVan', outcome: { type: 'penalty', text: 'It crashes immediately' } },
+      { label: 'The Poofo car', outcome: { type: 'normal', text: 'The race starts.  You get bored quickly, and move along' } },
+      { label: 'The Datsun', outcome: { type: 'normal', text: 'The race starts.  You get bored quickly, and move along' } },
+      { label: 'The HoneyBear car', outcome: { type: 'normal', text: 'The race starts.  You get bored quickly, and move along' } },
+      { label: 'The Pantera', outcome: { type: 'penalty', text: 'A multi-car pileup quickly ensues.  The Pantera does not escape' } },
+    ],
+  },
+  {
+    id: 'loc5', name: 'the WWYV set', image: 'images/location-5.svg',
+    description: 'It\'s a taping of WWYV at an offsite location!  You\'re excited to get involved',
+    zone: 1, weight: 1,
+    choices: [
+      { label: 'Watch the taping', outcome: { type: 'normal', text: 'That was a half-hour well spent.  Time to move on...' } },
+      { label: 'Volunteer as a contestant', outcome: { type: 'gameover', text: 'The taping gets out of hand -- you get air-shredded and thrown in the Vatchit pit.' } },
+    ],
+  },
+
+  // --- Zone 2 (progress 8-14) ---
+  {
+    id: 'loc3', name: 'The Gyro stand', image: 'images/location-3.svg',
+    description: 'You approach a small food stall.  It\'s staffed by a friendly, talking bear.',
+    zone: 2, weight: 1,
+    choices: [
+      { label: 'Order a small gyro', outcome: { type: 'heal', text: 'Ah, a tasty bite.  You see why this shop stays in business' } },
+      { label: 'Order a gigantamungous gyro', outcome: { type: 'penalty', text: '<<shred shred>> "Rrrrr... That\'s my size"' } },
+      { label: 'Chat with the staffer', outcome: { type: 'penalty', text: 'You ignore Humph\'s yawns and give an extensive digression on your ideas for college football ranking systems.  Humph exhales in your face to get you to leave.' } },
+    ],
+  },
+  {
+    id: 'loc6', name: 'KMRF Studios', image: 'images/location-6.svg',
+    description: 'You appraoch a broadcasting center.  It seems unmanned, but several tape machines are spinning.',
+    zone: 2, weight: 1,
+    choices: [
+      { label: 'See what\'s playing', outcome: { type: 'penalty', text: 'Wow, that was a lot of split screen.  You need a rest.' } },
+      { label: 'Continue on', outcome: { type: 'normal', text: 'Good choice, the FCC arrives just after you had left.' } },
+    ],
+  },
+  {
+    id: 'loc7', name: 'Frozen Food Warehouse', image: 'images/location-7.svg',
+    description: 'You arrive at a large warehouse. Trucks are loading and unloading frozen foods.',
+    zone: 2, weight: 1,
+    choices: [
+      { label: 'Go inside', outcome: { type: 'penalty', text: '"I say!  You\'re not allowed in here"' } },
+      { label: 'Conitnue on', outcome: { type: 'normal', text: 'You hitch a ride on one of the trucks. The truck advertises that it "brings you fruits and vegetables"' } },
+    ],
+  },
+  {
+    id: 'loc11', name: 'Outside', image: 'images/location-7.svg',
+    description: 'Walking along the sidewalk, a fweeb approaches.  They ask for a hug, but you\'re worried they might not hug nice.',
+    zone: 2, weight: 1,
+    choices: [
+      { label: 'Give a good hug', outcome: { type: 'normal', text: '"YaYaYaYaYa"' } },
+      { label: 'Use new technology', outcome: { type: 'penalty', text: '"Hey, give those back!!!"' } },
+      { label: 'Change your fweeb suit', outcome: { type: 'gameover', text: 'Yikes, it\'s the HAIRY HUGGER!!!  He catches you just as your fweeb suit was mid-change.  They\'re all bad' } },
+    ],
+  },
+
+  // --- Zone 3 (progress 15-20) ---
+  {
+    id: 'loc8', name: 'An Ice Pool', image: 'images/location-8.svg',
+    description: 'A large pool, with chunks of ice floating about. This place looks refreshing.  ',
+    zone: 3, weight: 1,
+    choices: [
+      { label: 'Go for a swim', outcome: { type: 'normal', text: 'That was refreshing.  Time to move on.' } },
+      { label: 'Set up a ticket booth', outcome: { type: 'penalty', text: 'I don\'t think you have a permit for that.' } },
+    ],
+  },
+  {
+    id: 'loc9', name: 'Bear\'s room', image: 'images/location-9.svg',
+    description: 'You approach Bear\'s room by the window.  Bean is happy to welcome you',
+    zone: 3, weight: 1,
+    choices: [
+      { label: 'Put on a collar', outcome: { type: 'normal', text: 'This isn\'t very comfortable, but you\'re glad it makes Bear feel safe.' } },
+      { label: 'Decline the collar', outcome: { type: 'penalty', text: 'ZAP.' } },
+    ],
+  },
+  {
+    id: 'loc9', name: 'MoviePlex', image: 'images/location-9.svg',
+    description: 'A movie theater is in front of you.  Several movies are playing on various screens.  It would be nice to cool off inside.',
+    zone: 3, weight: 1,
+    choices: [
+      { label: 'Watch the Ape-Man movie', outcome: { type: 'normal', text: 'Well, that certainly was a movie that was not based on a book.' } },
+      { label: 'Visit the snack counter', outcome: { type: 'penalty', text: 'Yowch, that popcorn was expensive' } },
+      { label: 'Hang out in the lobby', outcome: { type: 'normal', text: 'Sure, whatever' } },
+    ],
+  },
+  {
+    id: 'loc10', name: 'the Tennis courts', image: 'images/location-10.svg',
+    description: 'A tennis match is in full swing.  Several hard-fought points end with questionable calls.  You contemplate getting involved...',
+    zone: 3, weight: 1,
+    choices: [
+      { label: 'Keep your opinions to yourself', outcome: { type: 'normal', text: 'Gallant would approve.  You journey onward.' } },
+      { label: 'Go to the replay booth', outcome: { type: 'gameover', text: 'YEETTTIIIIIIIIIIIIII!!!!!!!   Thanks for coming up!' } },
+    ],
+  },
+];
+
+const END_TEXT = {
+  win: {
+    title: 'The Striped Poofo!!!!',
+    goodMessage: 'You found it!  At last your quest is at an end.  You retire to a life of luxury.',
+    badMessage: 'You at last reach the mythical Striped Poofo.  Unfortunately, as you publicize your discovery, the Feds confiscate your assets for fraudulent crypto activity. You retire to a life of obscurity',
+    image: 'images/win.svg',
+  },
+  gameover: {
+    title: 'Game over',
+    message: 'Placeholder defeat text.',
+    image: 'images/gameover.svg',
+  },
+};
+
+/* =========================================================================
+   ENGINE SECTION
+   ---------------------------------------------------------------------
+   Game state and logic. Shouldn't need to change this to edit content.
+   ========================================================================= */
+
+let state;
+
+function newGame() {
+  // Pick a random zone-1 location to start at (weighted the same way later
+  // location picks are), instead of always starting at the same spot.
+  const startLocation = pickWeighted(LOCATIONS.filter(l => l.zone === 1), l => l.weight);
+  state = {
+    progress: 0,
+    penaltyPoints: 0,
+    currentLocationId: startLocation.id,
+    ended: false,
+    gaveCrypto: false,
+  };
+  clearLog();
+  renderLocation(getLocation(state.currentLocationId));
+  updateHud();
+  document.getElementById('end-screen').classList.add('hidden');
+  document.getElementById('scene').classList.remove('hidden');
+  document.getElementById('log-wrap').classList.remove('hidden');
+}
+
+function getLocation(id) {
+  return LOCATIONS.find(l => l.id === id);
+}
+
+function randomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function pickWeighted(items, weightFn) {
+  const total = items.reduce((sum, item) => sum + weightFn(item), 0);
+  let roll = Math.random() * total;
+  for (const item of items) {
+    roll -= weightFn(item);
+    if (roll <= 0) return item;
+  }
+  return items[items.length - 1];
+}
+
+function getZoneForProgress(progress) {
+  return ZONES.find(z => progress >= z.min && progress <= z.max) || ZONES[ZONES.length - 1];
+}
+
+function pickNextLocation(excludeId) {
+  const zone = getZoneForProgress(state.progress);
+
+  let eligible = LOCATIONS.filter(loc => loc.zone === zone.id);
+  if (eligible.length === 0) {
+    // Fallback in case a zone has no locations defined.
+    eligible = LOCATIONS;
+  }
+  if (eligible.length > 1 && excludeId) {
+    const withoutCurrent = eligible.filter(l => l.id !== excludeId);
+    if (withoutCurrent.length > 0) eligible = withoutCurrent;
+  }
+  return pickWeighted(eligible, l => l.weight);
+}
+
+// Desirability ranking of outcome types, best first. Used by
+// getCorrectChoice to pick the "best" choice at a location automatically.
+const OUTCOME_RANK = { heal: 3, normal: 2, penalty: 1, gameover: 0 };
+
+// Determines which choice at a location counts as "correct" for Poofo's
+// purposes. A choice can be marked explicitly with `poofoCorrect: true`;
+// otherwise the choice with the most desirable determined outcome type
+// (see OUTCOME_RANK) wins.
+function getCorrectChoice(location) {
+  const explicit = location.choices.find(c => c.poofoCorrect);
+  if (explicit) return explicit;
+
+  let best = location.choices[0];
+  let bestRank = -Infinity;
+  location.choices.forEach(choice => {
+    const rank = OUTCOME_RANK[choice.outcome.type] ?? 0;
+    if (rank > bestRank) {
+      bestRank = rank;
+      best = choice;
+    }
+  });
+  return best;
+}
+
+function resolveChoice(choice) {
+  if (state.ended) return;
+
+  const location = getLocation(state.currentLocationId);
+  const distance = randomInt(CONFIG.minTravel, CONFIG.maxTravel);
+  const outcome = choice.outcome;
+  const prevZone = getZoneForProgress(state.progress);
+
+  state.progress = Math.min(state.progress + distance, CONFIG.winDistance);
+
+  let logClass = outcome.type;
+  let outcomeText = outcome.text;
+
+  if (outcome.type === 'penalty') {
+    state.penaltyPoints += 1;
+  } else if (outcome.type === 'heal') {
+    state.penaltyPoints = Math.max(state.penaltyPoints - 1, 0);
+  }
+
+  const logParts = [`${location.name}:`, outcomeText];
+  if (outcome.type === 'penalty') logParts.push('(penalty point)');
+  logParts.push(`(${distance} miles)`);
+  addLogEntry(logParts.join(' '), logClass);
+  updateHud();
+
+  showOutcomeModal(outcome.type, outcomeText, distance, () => {
+    if (outcome.type === 'gameover') {
+      endGame('gameover', outcomeText);
+      return;
+    }
+    if (state.penaltyPoints >= CONFIG.maxPenaltyPoints) {
+      endGame('gameover', 'Owwwh, rats.  That\'s too many penaly points.');
+      return;
+    }
+    if (state.progress >= CONFIG.winDistance) {
+      endGame('win', state.gaveCrypto ? END_TEXT.win.badMessage : END_TEXT.win.goodMessage);
+      return;
+    }
+
+    const next = pickNextLocation(state.currentLocationId);
+    state.currentLocationId = next.id;
+
+    const newZone = getZoneForProgress(state.progress);
+    if (newZone.id !== prevZone.id) {
+      showZoneTransitionModal(newZone, () => renderLocation(next));
+    } else {
+      renderLocation(next);
+    }
+  });
+}
+
+// Shown immediately after every choice, so the outcome text is hard to
+// miss (in addition to being recorded in the journey log).
+function showOutcomeModal(type, message, distance, onContinue) {
+  const backdrop = document.getElementById('outcome-modal-backdrop');
+  const continueBtn = document.getElementById('outcome-modal-continue');
+  const detailEl = document.getElementById('outcome-modal-detail');
+
+  continueBtn.textContent = type === 'gameover' ? 'Game Over' : 'Continue';
+  document.getElementById('outcome-modal-message').textContent = message;
+
+  let detail = '';
+  if (type === 'penalty') detail = "(that's a penalty point)";
+  else if (type === 'normal') detail = `(you travel ${distance} miles)`;
+  detailEl.textContent = detail;
+  detailEl.classList.toggle('hidden', !detail);
+
+  backdrop.classList.remove('hidden');
+
+  function dismiss() {
+    backdrop.classList.add('hidden');
+    continueBtn.removeEventListener('click', dismiss);
+    onContinue();
+  }
+  continueBtn.addEventListener('click', dismiss);
+}
+
+// Shown once whenever the player's progress crosses into a new zone.
+// Purely flavor for now (a gold prompt from the zone's Poofo) — the choice
+// has no gameplay effect yet.
+function showZoneTransitionModal(zone, onDismiss) {
+  const backdrop = document.getElementById('zone-modal-backdrop');
+  const largeBtn = document.getElementById('zone-modal-large');
+  const smallBtn = document.getElementById('zone-modal-small');
+
+  document.getElementById('zone-modal-title').textContent = `You have entered ${zone.name}`;
+  document.getElementById('zone-modal-message').textContent =
+    `A beep on your FoFynder app indicates you are now in a different Local Poofo area.`;
+
+  backdrop.classList.remove('hidden');
+
+  function choose(buttonEl) {
+    backdrop.classList.add('hidden');
+    largeBtn.removeEventListener('click', onLarge);
+    smallBtn.removeEventListener('click', onSmall);
+    addLogEntry(`At the threshold of ${zone.name}, you chose: ${buttonEl.textContent}`, 'zone');
+    onDismiss();
+  }
+  function onLarge() { state.gaveCrypto = true; choose(largeBtn); }
+  function onSmall() { choose(smallBtn); }
+
+  largeBtn.addEventListener('click', onLarge);
+  smallBtn.addEventListener('click', onSmall);
+}
+
+function endGame(type, message) {
+  state.ended = true;
+  document.getElementById('scene').classList.add('hidden');
+  document.getElementById('log-wrap').classList.add('hidden');
+
+  const info = END_TEXT[type];
+  document.getElementById('end-image').src = info.image;
+  document.getElementById('end-title').textContent = info.title;
+  document.getElementById('end-message').textContent = message || info.message;
+  document.getElementById('end-screen').classList.remove('hidden');
+}
+
+/* ---- Rendering ---- */
+
+function renderLocation(location) {
+  document.getElementById('scene-image').src = location.image;
+  document.getElementById('scene-image').alt = location.name;
+  document.getElementById('scene-name').textContent = location.name;
+  document.getElementById('scene-description').textContent = location.description;
+
+  const choicesEl = document.getElementById('choices');
+  choicesEl.innerHTML = '';
+  const buttonMap = new Map();
+  location.choices.forEach(choice => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    const label = document.createElement('span');
+    label.className = 'choice-label';
+    label.textContent = choice.label;
+    btn.appendChild(label);
+    btn.addEventListener('click', () => resolveChoice(choice));
+    choicesEl.appendChild(btn);
+    buttonMap.set(choice, btn);
+  });
+
+  renderPoofo(location, buttonMap);
+}
+
+// Small inline icon marking Poofo's recommended choice.
+const POOFO_ICON_SVG = `
+<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="6" cy="6" r="3" fill="currentColor"/>
+  <circle cx="18" cy="6" r="3" fill="currentColor"/>
+  <circle cx="12" cy="13" r="8" fill="currentColor"/>
+  <circle cx="9" cy="11" r="1.1" fill="#1b1410"/>
+  <circle cx="15" cy="11" r="1.1" fill="#1b1410"/>
+  <ellipse cx="12" cy="15" rx="3.5" ry="2.5" fill="#1b1410"/>
+  <circle cx="12" cy="15" r="0.8" fill="currentColor"/>
+</svg>`.trim();
+
+function renderPoofo(location, buttonMap) {
+  const poofoEl = document.getElementById('poofo');
+  poofoEl.innerHTML = '';
+  poofoEl.classList.add('hidden');
+
+  if (location.choices.length < 2) return;
+  if (Math.random() >= CONFIG.poofoAppearChance) return;
+
+  poofoEl.classList.remove('hidden');
+
+  const btn = document.createElement('button');
+  btn.className = 'poofo-btn';
+  const btnLabel = document.createElement('span');
+  btnLabel.textContent = 'Consult the local Poofo';
+  const btnIcon = document.createElement('span');
+  btnIcon.className = 'poofo-icon';
+  btnIcon.innerHTML = POOFO_ICON_SVG;
+  btn.appendChild(btnLabel);
+  btn.appendChild(btnIcon);
+
+  const hintText = document.createElement('p');
+  hintText.className = 'poofo-hint';
+
+  btn.addEventListener('click', () => {
+    const hint = pickWeighted(POOFO_HINTS, h => h.weight || 1);
+    const correct = getCorrectChoice(location);
+    const isAccurate = Math.random() < hint.accuracy;
+
+    let highlighted = correct;
+    if (!isAccurate) {
+      const others = location.choices.filter(c => c !== correct);
+      if (others.length > 0) highlighted = others[randomInt(0, others.length - 1)];
+    }
+
+    hintText.textContent = hint.text;
+    buttonMap.forEach(buttonEl => {
+      buttonEl.classList.remove('poofo-highlight');
+      const existingIcon = buttonEl.querySelector('.poofo-icon');
+      if (existingIcon) existingIcon.remove();
+    });
+    const targetBtn = buttonMap.get(highlighted);
+    if (targetBtn) {
+      targetBtn.classList.add('poofo-highlight');
+      const icon = document.createElement('span');
+      icon.className = 'poofo-icon';
+      icon.innerHTML = POOFO_ICON_SVG;
+      targetBtn.appendChild(icon);
+    }
+    btn.disabled = true;
+  });
+
+  poofoEl.appendChild(btn);
+  poofoEl.appendChild(hintText);
+}
+
+// Draws a tick on the progress bar at the start of each zone after the
+// first (zone boundaries never move, so this only needs to run once).
+function renderZoneMarkers() {
+  const markersEl = document.getElementById('zone-markers');
+  markersEl.innerHTML = '';
+  ZONES.slice(1).forEach(zone => {
+    const marker = document.createElement('div');
+    marker.className = 'zone-marker';
+    marker.style.left = (zone.min / CONFIG.winDistance) * 100 + '%';
+    marker.title = `${zone.name} begins`;
+    markersEl.appendChild(marker);
+  });
+}
+
+function updateHud() {
+  const pct = Math.min(100, (state.progress / CONFIG.winDistance) * 100);
+  document.getElementById('progress-fill').style.width = pct + '%';
+
+  const penaltyEl = document.getElementById('penalty-points');
+  penaltyEl.innerHTML = '';
+  for (let i = 0; i < CONFIG.maxPenaltyPoints; i++) {
+    const span = document.createElement('span');
+    span.textContent = '✗';
+    span.className = i < state.penaltyPoints ? 'penalty-mark-full' : 'penalty-mark-empty';
+    penaltyEl.appendChild(span);
+  }
+}
+
+function clearLog() {
+  document.getElementById('log').innerHTML = '';
+}
+
+function addLogEntry(text, cls) {
+  const log = document.getElementById('log');
+  const entry = document.createElement('div');
+  entry.className = 'log-entry' + (cls && cls !== 'normal' ? ' ' + cls : '');
+  entry.textContent = text;
+  log.insertBefore(entry, log.firstChild);
+}
+
+document.getElementById('restart-btn').addEventListener('click', newGame);
+
+renderZoneMarkers();
+newGame();
+</script>
+</body>
+</html>
