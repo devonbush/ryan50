@@ -97,16 +97,52 @@
   .penalty-mark-empty { color: var(--penalty-empty); }
 
 
-  /* ---- Scene ---- */
+  /* ---- Scene (scrolling adventure feed) ---- */
   #scene {
     background: var(--panel);
     border: 1px solid var(--panel-border);
     border-radius: 8px;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: 68vh;
+    scroll-behavior: smooth;
     margin-bottom: 16px;
+    scrollbar-width: auto;
+    scrollbar-color: var(--accent-dim) #100c09;
   }
 
-  #scene img {
+  #scene::-webkit-scrollbar {
+    width: 16px;
+  }
+
+  #scene::-webkit-scrollbar-track {
+    background: #100c09;
+    border-radius: 999px;
+  }
+
+  #scene::-webkit-scrollbar-thumb {
+    background-color: var(--accent-dim);
+    background-clip: padding-box;
+    border: 4px solid var(--panel);
+    border-radius: 999px;
+  }
+
+  #scene::-webkit-scrollbar-thumb:hover {
+    background-color: var(--accent);
+  }
+
+  #scene-feed {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .location-entry + .location-entry {
+    border-top: 1px dashed var(--accent-dim);
+    margin-top: 48px;
+    padding-top: 48px;
+  }
+
+  .entry-image {
     width: 100%;
     display: block;
     aspect-ratio: 16 / 9;
@@ -114,23 +150,23 @@
     background: #100c09;
   }
 
-  #scene-body {
+  .entry-body {
     padding: 16px;
   }
 
-  #scene-name {
+  .entry-name {
     margin: 0 0 8px;
     font-size: 1.2rem;
     color: var(--accent);
   }
 
-  #scene-description {
+  .entry-description {
     margin: 0 0 16px;
     line-height: 1.5;
     color: var(--text);
   }
 
-  #choices {
+  .entry-choices {
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -200,7 +236,7 @@
     display: block;
   }
 
-  #poofo {
+  .entry-poofo {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -240,43 +276,41 @@
     margin: 6px 0 0;
   }
 
-  /* ---- Log ---- */
-  #log-wrap {
-    background: var(--panel);
-    border: 1px solid var(--panel-border);
-    border-radius: 8px;
-    padding: 12px 14px;
-    margin-top: 64px;
-    margin-bottom: 16px;
+  /* ---- Inline choice consequence ---- */
+  .consequence {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--accent-dim);
+    text-align: center;
   }
 
-  #log-wrap h2 {
-    margin: 0 0 8px;
-    font-size: 0.85rem;
-    letter-spacing: 0.06em;
+  .consequence-message {
     color: var(--text-dim);
+    margin: 0 0 6px;
+    line-height: 1.5;
   }
 
-  #log {
-    max-height: 160px;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+  .consequence.consequence-penalty .consequence-message,
+  .consequence.consequence-gameover .consequence-message {
+    color: var(--danger);
   }
 
-  .log-entry {
+  .consequence-detail {
+    font-style: italic;
     font-size: 0.85rem;
-    line-height: 1.4;
     color: var(--text-dim);
-    border-left: 2px solid var(--accent-dim);
-    padding-left: 8px;
+    margin: 0 0 14px;
   }
 
-  .log-entry.penalty { border-left-color: var(--danger); }
-  .log-entry.gameover { border-left-color: var(--danger); font-weight: bold; }
-  .log-entry.heal { border-left-color: var(--accent); }
-  .log-entry.zone { border-left-color: var(--accent-dim); font-style: italic; }
+  /* ---- Inline zone-transition summary ---- */
+  .zone-entry {
+    padding: 10px 16px;
+    font-style: italic;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    background: rgba(202, 161, 93, 0.06);
+    border-bottom: 1px solid var(--panel-border);
+  }
 
   /* ---- End screens ---- */
   #end-screen {
@@ -326,6 +360,11 @@
     background: #e0b96e;
   }
 
+  .primary-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
   .hidden { display: none !important; }
 
   /* ---- Zone transition modal ---- */
@@ -373,40 +412,6 @@
     flex: 1;
     min-width: 140px;
   }
-
-  /* ---- Outcome modal ---- */
-  #outcome-modal-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.6);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 16px;
-    z-index: 1000;
-  }
-
-  #outcome-modal {
-    background: var(--panel);
-    border: 1px solid var(--panel-border);
-    border-radius: 8px;
-    padding: 24px;
-    max-width: 420px;
-    width: 100%;
-    text-align: center;
-  }
-
-  #outcome-modal p {
-    color: var(--text-dim);
-    margin: 0 0 20px;
-    line-height: 1.5;
-  }
-
-  #outcome-modal-detail {
-    font-style: italic;
-    font-size: 0.85rem;
-    margin-top: -14px;
-  }
 </style>
 </head>
 <body>
@@ -414,13 +419,7 @@
   <h1 class="title">Murfs and Murfery</h1>
 
   <div id="scene">
-    <img id="scene-image" src="" alt="">
-    <div id="scene-body">
-      <h2 id="scene-name"></h2>
-      <p id="scene-description"></p>
-      <div id="choices"></div>
-      <div id="poofo" class="hidden"></div>
-    </div>
+    <div id="scene-feed"></div>
   </div>
 
   <div id="hud">
@@ -435,11 +434,6 @@
     </div>
   </div>
 
-  <div id="log-wrap">
-    <h2>triptik / log</h2>
-    <div id="log"></div>
-  </div>
-
   <div id="end-screen" class="hidden">
     <img id="end-image" src="" alt="">
     <div id="end-body">
@@ -447,14 +441,6 @@
       <p id="end-message"></p>
       <button class="primary-btn" id="restart-btn">Play Again</button>
     </div>
-  </div>
-</div>
-
-<div id="outcome-modal-backdrop" class="hidden">
-  <div id="outcome-modal">
-    <p id="outcome-modal-message"></p>
-    <p id="outcome-modal-detail" class="hidden"></p>
-    <button class="primary-btn" id="outcome-modal-continue">Continue</button>
   </div>
 </div>
 
@@ -516,8 +502,8 @@ const POOFO_HINTS = [
 //   'penalty'  -> gain 1 penalty point (a red X); 3 points ends the game
 //   'heal'     -> remove 1 penalty point (floor of 0)
 //   'gameover' -> quest ends immediately, regardless of penalty points
-// outcome.text is shown both in the journey log and in a modal right after
-// the choice is made.
+// outcome.text is shown inline, right in the scrolling feed, after the
+// choice is made.
 
 // Locations the player can land on. Each has a `zone` (1, 2, or 3 — see
 // ZONES above) and only locations in the player's current zone are
@@ -718,12 +704,11 @@ function newGame() {
     ended: false,
     gaveCrypto: false,
   };
-  clearLog();
-  renderLocation(getLocation(state.currentLocationId));
+  document.getElementById('scene-feed').innerHTML = '';
+  appendLocationEntry(getLocation(state.currentLocationId));
   updateHud();
   document.getElementById('end-screen').classList.add('hidden');
   document.getElementById('scene').classList.remove('hidden');
-  document.getElementById('log-wrap').classList.remove('hidden');
 }
 
 function getLocation(id) {
@@ -795,18 +780,14 @@ function getCorrectChoice(location) {
   return best;
 }
 
-function resolveChoice(choice) {
+function resolveChoice(choice, entryEl) {
   if (state.ended) return;
 
-  const location = getLocation(state.currentLocationId);
   const distance = randomInt(CONFIG.minTravel, CONFIG.maxTravel);
   const outcome = choice.outcome;
   const prevZone = getZoneForProgress(state.progress);
 
   state.progress = Math.min(state.progress + distance, CONFIG.winDistance);
-
-  let logClass = outcome.type;
-  let outcomeText = outcome.text;
 
   if (outcome.type === 'penalty') {
     state.penaltyPoints += 1;
@@ -814,15 +795,11 @@ function resolveChoice(choice) {
     state.penaltyPoints = Math.max(state.penaltyPoints - 1, 0);
   }
 
-  const logParts = [`${location.name}:`, outcomeText];
-  if (outcome.type === 'penalty') logParts.push('(penalty point)');
-  logParts.push(`(${distance} miles)`);
-  addLogEntry(logParts.join(' '), logClass);
   updateHud();
 
-  showOutcomeModal(outcome.type, outcomeText, distance, () => {
+  appendConsequence(entryEl, outcome, distance, () => {
     if (outcome.type === 'gameover') {
-      endGame('gameover', outcomeText);
+      endGame('gameover', outcome.text);
       return;
     }
     if (state.penaltyPoints >= CONFIG.maxPenaltyPoints) {
@@ -840,42 +817,53 @@ function resolveChoice(choice) {
 
     const newZone = getZoneForProgress(state.progress);
     if (newZone.id !== prevZone.id) {
-      showZoneTransitionModal(newZone, () => renderLocation(next));
+      showZoneTransitionModal(newZone, () => appendLocationEntry(next));
     } else {
-      renderLocation(next);
+      appendLocationEntry(next);
     }
   });
 }
 
-// Shown immediately after every choice, so the outcome text is hard to
-// miss (in addition to being recorded in the journey log).
-function showOutcomeModal(type, message, distance, onContinue) {
-  const backdrop = document.getElementById('outcome-modal-backdrop');
-  const continueBtn = document.getElementById('outcome-modal-continue');
-  const detailEl = document.getElementById('outcome-modal-detail');
+// Appends the outcome text (plus a penalty/travel detail line) and a
+// Continue button right into the location entry the player just chose
+// from, instead of a modal. Continuing runs onContinue.
+function appendConsequence(entryEl, outcome, distance, onContinue) {
+  const body = entryEl.querySelector('.entry-body');
 
-  continueBtn.textContent = type === 'gameover' ? 'Game Over' : 'Continue';
-  document.getElementById('outcome-modal-message').textContent = message;
+  const consequence = document.createElement('div');
+  consequence.className = 'consequence consequence-' + outcome.type;
+
+  const message = document.createElement('p');
+  message.className = 'consequence-message';
+  message.textContent = outcome.text;
+  consequence.appendChild(message);
 
   let detail = '';
-  if (type === 'penalty') detail = "(that's a penalty point)";
-  else if (type === 'normal') detail = `(you travel ${distance} miles)`;
-  detailEl.textContent = detail;
-  detailEl.classList.toggle('hidden', !detail);
-
-  backdrop.classList.remove('hidden');
-
-  function dismiss() {
-    backdrop.classList.add('hidden');
-    continueBtn.removeEventListener('click', dismiss);
-    onContinue();
+  if (outcome.type === 'penalty') detail = "(that's a penalty point)";
+  else if (outcome.type === 'normal') detail = `(you travel ${distance} miles)`;
+  if (detail) {
+    const detailEl = document.createElement('p');
+    detailEl.className = 'consequence-detail';
+    detailEl.textContent = detail;
+    consequence.appendChild(detailEl);
   }
-  continueBtn.addEventListener('click', dismiss);
+
+  const continueBtn = document.createElement('button');
+  continueBtn.className = 'primary-btn';
+  continueBtn.textContent = outcome.type === 'gameover' ? 'Game Over' : 'Continue';
+  continueBtn.addEventListener('click', () => {
+    continueBtn.disabled = true;
+    onContinue();
+  });
+  consequence.appendChild(continueBtn);
+
+  body.appendChild(consequence);
+  scrollFeedToBottom();
 }
 
 // Shown once whenever the player's progress crosses into a new zone.
 // Purely flavor for now (a gold prompt from the zone's Poofo) — the choice
-// has no gameplay effect yet.
+// has no gameplay effect yet, beyond being remembered for the win text.
 function showZoneTransitionModal(zone, onDismiss) {
   const backdrop = document.getElementById('zone-modal-backdrop');
   const largeBtn = document.getElementById('zone-modal-large');
@@ -891,7 +879,7 @@ function showZoneTransitionModal(zone, onDismiss) {
     backdrop.classList.add('hidden');
     largeBtn.removeEventListener('click', onLarge);
     smallBtn.removeEventListener('click', onSmall);
-    addLogEntry(`At the threshold of ${zone.name}, you chose: ${buttonEl.textContent}`, 'zone');
+    appendZoneEntry(zone, buttonEl.textContent);
     onDismiss();
   }
   function onLarge() { state.gaveCrypto = true; choose(largeBtn); }
@@ -901,10 +889,20 @@ function showZoneTransitionModal(zone, onDismiss) {
   smallBtn.addEventListener('click', onSmall);
 }
 
+// A small inline record of a zone transition + the gold choice made there,
+// so it stays visible when scrolling back through the feed.
+function appendZoneEntry(zone, choiceText) {
+  const feed = document.getElementById('scene-feed');
+  const entry = document.createElement('div');
+  entry.className = 'zone-entry';
+  entry.textContent = `You have entered ${zone.name}. You chose: ${choiceText}`;
+  feed.appendChild(entry);
+  scrollFeedToBottom();
+}
+
 function endGame(type, message) {
   state.ended = true;
   document.getElementById('scene').classList.add('hidden');
-  document.getElementById('log-wrap').classList.add('hidden');
 
   const info = END_TEXT[type];
   document.getElementById('end-image').src = info.image;
@@ -915,14 +913,49 @@ function endGame(type, message) {
 
 /* ---- Rendering ---- */
 
-function renderLocation(location) {
-  document.getElementById('scene-image').src = location.image;
-  document.getElementById('scene-image').alt = location.name;
-  document.getElementById('scene-name').textContent = location.name;
-  document.getElementById('scene-description').textContent = location.description;
+function scrollFeedToBottom() {
+  const scene = document.getElementById('scene');
+  scene.scrollTop = scene.scrollHeight;
+}
 
-  const choicesEl = document.getElementById('choices');
-  choicesEl.innerHTML = '';
+// Appends a new location card (image, name, description, choices, Poofo)
+// to the bottom of the scrolling feed.
+function appendLocationEntry(location) {
+  const feed = document.getElementById('scene-feed');
+
+  const entry = document.createElement('div');
+  entry.className = 'location-entry';
+
+  const img = document.createElement('img');
+  img.className = 'entry-image';
+  img.src = location.image;
+  img.alt = location.name;
+  entry.appendChild(img);
+
+  const body = document.createElement('div');
+  body.className = 'entry-body';
+
+  const name = document.createElement('h2');
+  name.className = 'entry-name';
+  name.textContent = location.name;
+  body.appendChild(name);
+
+  const description = document.createElement('p');
+  description.className = 'entry-description';
+  description.textContent = location.description;
+  body.appendChild(description);
+
+  const choicesEl = document.createElement('div');
+  choicesEl.className = 'entry-choices';
+  body.appendChild(choicesEl);
+
+  const poofoEl = document.createElement('div');
+  poofoEl.className = 'entry-poofo hidden';
+  body.appendChild(poofoEl);
+
+  entry.appendChild(body);
+  feed.appendChild(entry);
+
   const buttonMap = new Map();
   location.choices.forEach(choice => {
     const btn = document.createElement('button');
@@ -934,33 +967,34 @@ function renderLocation(location) {
     fill.className = 'choice-fill';
     btn.appendChild(label);
     btn.appendChild(fill);
-    btn.addEventListener('click', () => selectChoice(choice, btn, buttonMap));
+    btn.addEventListener('click', () => selectChoice(choice, btn, buttonMap, entry));
     choicesEl.appendChild(btn);
     buttonMap.set(choice, btn);
   });
 
-  renderPoofo(location, buttonMap);
+  renderPoofo(location, buttonMap, poofoEl);
+  scrollFeedToBottom();
 }
 
-// How long the pulse + fill-bar animation plays before the outcome modal
-// (and any state changes) actually happen.
+// How long the pulse + fill-bar animation plays before the consequence
+// (and any state changes) actually appears.
 const CHOICE_SELECT_ANIMATION_MS = 1000;
 
-// Plays the "selected" visual (pulse + fill bar sweeping across the
-// button) on the clicked choice, locks out further input, then resolves
-// the choice once the animation has finished.
-function selectChoice(choice, btn, buttonMap) {
+// Plays the "selected" visual (thicker border + fill bar sweeping across
+// the button) on the clicked choice, locks out further input in this
+// entry, then resolves the choice once the animation has finished.
+function selectChoice(choice, btn, buttonMap, entryEl) {
   if (state.ended || btn.disabled) return;
 
   buttonMap.forEach(b => { b.disabled = true; });
-  const poofoBtn = document.querySelector('.poofo-btn');
+  const poofoBtn = entryEl.querySelector('.poofo-btn');
   if (poofoBtn) poofoBtn.disabled = true;
 
   btn.classList.add('choice-selected');
   const fill = btn.querySelector('.choice-fill');
   if (fill) fill.classList.add('choice-fill-active');
 
-  setTimeout(() => resolveChoice(choice), CHOICE_SELECT_ANIMATION_MS);
+  setTimeout(() => resolveChoice(choice, entryEl), CHOICE_SELECT_ANIMATION_MS);
 }
 
 // Small inline icon marking Poofo's recommended choice.
@@ -975,8 +1009,7 @@ const POOFO_ICON_SVG = `
   <circle cx="12" cy="15" r="0.8" fill="currentColor"/>
 </svg>`.trim();
 
-function renderPoofo(location, buttonMap) {
-  const poofoEl = document.getElementById('poofo');
+function renderPoofo(location, buttonMap, poofoEl) {
   poofoEl.innerHTML = '';
   poofoEl.classList.add('hidden');
 
@@ -1056,18 +1089,6 @@ function updateHud() {
     span.className = i < state.penaltyPoints ? 'penalty-mark-full' : 'penalty-mark-empty';
     penaltyEl.appendChild(span);
   }
-}
-
-function clearLog() {
-  document.getElementById('log').innerHTML = '';
-}
-
-function addLogEntry(text, cls) {
-  const log = document.getElementById('log');
-  const entry = document.createElement('div');
-  entry.className = 'log-entry' + (cls && cls !== 'normal' ? ' ' + cls : '');
-  entry.textContent = text;
-  log.insertBefore(entry, log.firstChild);
 }
 
 document.getElementById('restart-btn').addEventListener('click', newGame);
