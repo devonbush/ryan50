@@ -137,6 +137,8 @@
   }
 
   .choice-btn {
+    position: relative;
+    overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -155,6 +157,31 @@
 
   .choice-btn:hover {
     background: #2a2018;
+    border-color: var(--accent);
+  }
+
+  .choice-btn:disabled {
+    cursor: default;
+  }
+
+  .choice-label {
+    position: relative;
+  }
+
+  .choice-fill {
+    position: absolute;
+    inset: 0;
+    width: 0%;
+    background: rgba(202, 161, 93, 0.35);
+    transition: width 1s linear;
+  }
+
+  .choice-fill.choice-fill-active {
+    width: 100%;
+  }
+
+  .choice-btn.choice-selected {
+    border-width: 3px;
     border-color: var(--accent);
   }
 
@@ -500,7 +527,7 @@ const POOFO_HINTS = [
 const LOCATIONS = [
   // --- Zone 1 (progress 0-7) ---
   {
-    id: 'loc1', name: 'The Restaurant', image: 'images/location-1.svg',
+    id: 'loc_theRestaurant', name: 'The Restaurant', image: 'images/location-1.svg',
     description: 'You arrive at a fine dining establishment.  A penguin shows you to your table.  Another enthusiastic penguin approaches.',
     zone: 1, weight: 1,
     choices: [
@@ -510,7 +537,7 @@ const LOCATIONS = [
     ],
   },
   {
-    id: 'loc2', name: 'The PawPaw Patch', image: 'images/location-2.svg',
+    id: 'loc_thePawpawPatch', name: 'The PawPaw Patch', image: 'images/location-2.svg',
     description: 'You don\'t really know what this is...',
     zone: 1, weight: 1,
     choices: [
@@ -519,11 +546,11 @@ const LOCATIONS = [
     ],
   },
   {
-    id: 'loc4', name: 'The racetrack', image: 'images/location-4.svg',
+    id: 'loc_theRacetrack', name: 'The racetrack', image: 'images/location-4.svg',
     description: 'You approach a racetrack.  A number of cars seem lined up, ready to race.  You need to place a wager.',
     zone: 1, weight: 1,
     choices: [
-      { label: 'The MrweepVan', outcome: { type: 'penalty', text: 'It crashes immediately' } },
+      { label: 'The MrweepVan', outcome: { type: 'penalty', text: 'The engine overheats immediately' } },
       { label: 'The Poofo car', outcome: { type: 'normal', text: 'The race starts.  You get bored quickly, and move along' } },
       { label: 'The Datsun', outcome: { type: 'normal', text: 'The race starts.  You get bored quickly, and move along' } },
       { label: 'The HoneyBear car', outcome: { type: 'normal', text: 'The race starts.  You get bored quickly, and move along' } },
@@ -531,7 +558,7 @@ const LOCATIONS = [
     ],
   },
   {
-    id: 'loc5', name: 'the WWYV set', image: 'images/location-5.svg',
+    id: 'loc_theWwyvSet', name: 'the WWYV set', image: 'images/location-5.svg',
     description: 'It\'s a taping of WWYV at an offsite location!  You\'re excited to get involved',
     zone: 1, weight: 1,
     choices: [
@@ -539,10 +566,29 @@ const LOCATIONS = [
       { label: 'Volunteer as a contestant', outcome: { type: 'gameover', text: 'The taping gets out of hand -- you get air-shredded and thrown in the Vatchit pit.' } },
     ],
   },
+  {
+    id: 'loc_aHospital', name: 'A Hospital', image: 'images/location-5.svg',
+    description: 'You find yourself outside a large medical center.  Even from the parking lot, you can hear a doctor being paged over the intercom',
+    zone: 1, weight: 1,
+    choices: [
+      { label: 'Answer line 4', outcome: { type: 'penalty', text: 'mmmmMMMMMMMMMmmmmmmmmmmmmmm...' } },
+      { label: 'Answer line 3', outcome: { type: 'penalty', text: 'mmmmMMMMMMMMMmmmmmmmmmmmmmm...' } },
+      { label: 'Call Dr. Poofo yourself', outcome: { type: 'penalty', text: 'mmmmMMMMMMMMMmmmmmmmmmmmmmm...' } },
+    ],
+  },
+  {
+    id: 'loc_residentialArea', name: 'Residential area', image: 'images/location-5.svg',
+    description: 'You walk through a new residential development.  A number of bears are installing shingles on one of the houses',
+    zone: 1, weight: 1,
+    choices: [
+      { label: 'Say hi to Roofo', outcome: { type: 'penalty', text: 'Poofo says: "Mmmmm... this didn\'t advance the plot at all"' } },
+      { label: 'Adivse Roofo on OSHA best practices', outcome: { type: 'normal', text: 'Roofo says "Thanks for the tip.  A safe workplace is a happy workplace!"'} },
+    ],
+  },
 
   // --- Zone 2 (progress 8-14) ---
   {
-    id: 'loc3', name: 'The Gyro stand', image: 'images/location-3.svg',
+    id: 'loc_theGyroStand', name: 'The Gyro stand', image: 'images/location-3.svg',
     description: 'You approach a small food stall.  It\'s staffed by a friendly, talking bear.',
     zone: 2, weight: 1,
     choices: [
@@ -552,7 +598,7 @@ const LOCATIONS = [
     ],
   },
   {
-    id: 'loc6', name: 'KMRF Studios', image: 'images/location-6.svg',
+    id: 'loc_kmrfStudios', name: 'KMRF Studios', image: 'images/location-6.svg',
     description: 'You appraoch a broadcasting center.  It seems unmanned, but several tape machines are spinning.',
     zone: 2, weight: 1,
     choices: [
@@ -561,7 +607,7 @@ const LOCATIONS = [
     ],
   },
   {
-    id: 'loc7', name: 'Frozen Food Warehouse', image: 'images/location-7.svg',
+    id: 'loc_frozenFoodWarehouse', name: 'Frozen Food Warehouse', image: 'images/location-7.svg',
     description: 'You arrive at a large warehouse. Trucks are loading and unloading frozen foods.',
     zone: 2, weight: 1,
     choices: [
@@ -570,7 +616,16 @@ const LOCATIONS = [
     ],
   },
   {
-    id: 'loc11', name: 'Outside', image: 'images/location-7.svg',
+    id: 'loc_aSidewalk', name: 'A Sidewalk', image: 'images/location-7.svg',
+    description: 'You walk down a sidewalk.  It looks like Baby Yeti is nearby having trouble opening a pudding cup.  She says "UUIIUUAOOOAAAIIIAAAHHHH".',
+    zone: 2, weight: 1,
+    choices: [
+      { label: 'Help her', outcome: { type: 'gameover', text: 'You fool!  Baby Yeti never starts her cries with a "U".  It was the Necromancer in disguise.' } },
+      { label: 'Conitnue on', outcome: { type: 'normal', text: '"That pudding cup probably had artifical colors in it anyway."  You move on ' } },
+    ],
+  },
+  {
+    id: 'loc_outside', name: 'Outside', image: 'images/location-7.svg',
     description: 'Walking along the sidewalk, a fweeb approaches.  They ask for a hug, but you\'re worried they might not hug nice.',
     zone: 2, weight: 1,
     choices: [
@@ -582,7 +637,7 @@ const LOCATIONS = [
 
   // --- Zone 3 (progress 15-20) ---
   {
-    id: 'loc8', name: 'An Ice Pool', image: 'images/location-8.svg',
+    id: 'loc_anIcePool', name: 'An Ice Pool', image: 'images/location-8.svg',
     description: 'A large pool, with chunks of ice floating about. This place looks refreshing.  ',
     zone: 3, weight: 1,
     choices: [
@@ -591,8 +646,8 @@ const LOCATIONS = [
     ],
   },
   {
-    id: 'loc9', name: 'Bear\'s room', image: 'images/location-9.svg',
-    description: 'You approach Bear\'s room by the window.  Bean is happy to welcome you',
+    id: 'loc_bearRoom', name: 'Bear\'s room', image: 'images/location-9.svg',
+    description: 'You approach Bear\'s room by the window.  Bear is happy to welcome you',
     zone: 3, weight: 1,
     choices: [
       { label: 'Put on a collar', outcome: { type: 'normal', text: 'This isn\'t very comfortable, but you\'re glad it makes Bear feel safe.' } },
@@ -600,17 +655,26 @@ const LOCATIONS = [
     ],
   },
   {
-    id: 'loc9', name: 'MoviePlex', image: 'images/location-9.svg',
+    id: 'loc_theFamousFerb', name: 'The Famous Ferb!', image: 'images/location-9.svg',
+    description: 'It\'s the Famous Ferb!  He looks like he\'s just about to burst into song',
+    zone: 3, weight: 1,
+    choices: [
+      { label: 'Stay and listen', outcome: { type: 'normal', text: 'A fine concert indeed, and you qualify for some frequent flier miles.' } },
+      { label: 'Continue on', outcome: { type: 'penalty', text: '"Rrrrrrrrrr... Vatch concert!" <<shred shred>>' } },
+    ],
+  },
+  {
+    id: 'loc_moviePlex', name: 'MoviePlex', image: 'images/location-9.svg',
     description: 'A movie theater is in front of you.  Several movies are playing on various screens.  It would be nice to cool off inside.',
     zone: 3, weight: 1,
     choices: [
-      { label: 'Watch the Ape-Man movie', outcome: { type: 'normal', text: 'Well, that certainly was a movie that was not based on a book.' } },
-      { label: 'Visit the snack counter', outcome: { type: 'penalty', text: 'Yowch, that popcorn was expensive' } },
+      { label: 'Watch the new Ape-Man movie', outcome: { type: 'normal', text: 'Well, that certainly was a movie that was not based on a book.' } },
+      { label: 'Visit the snack counter', outcome: { type: 'penalty', text: 'Yowch, that popcorn was expensive and stale.  You don\'t feel so good...' } },
       { label: 'Hang out in the lobby', outcome: { type: 'normal', text: 'Sure, whatever' } },
     ],
   },
   {
-    id: 'loc10', name: 'the Tennis courts', image: 'images/location-10.svg',
+    id: 'loc_theTennisCourts', name: 'the Tennis courts', image: 'images/location-10.svg',
     description: 'A tennis match is in full swing.  Several hard-fought points end with questionable calls.  You contemplate getting involved...',
     zone: 3, weight: 1,
     choices: [
@@ -624,7 +688,7 @@ const END_TEXT = {
   win: {
     title: 'The Striped Poofo!!!!',
     goodMessage: 'You found it!  At last your quest is at an end.  You retire to a life of luxury.',
-    badMessage: 'You at last reach the mythical Striped Poofo.  Unfortunately, as you publicize your discovery, the Feds confiscate your assets for fraudulent crypto activity. You retire to a life of obscurity',
+    badMessage: 'You at last reach the mythical Striped Poofo.  Unfortunately, as you publicize your discovery, your assets are confiscated for fraudulent crypto activity. You retire to a life of poverty',
     image: 'images/win.svg',
   },
   gameover: {
@@ -650,6 +714,7 @@ function newGame() {
     progress: 0,
     penaltyPoints: 0,
     currentLocationId: startLocation.id,
+    visited: new Set([startLocation.id]),
     ended: false,
     gaveCrypto: false,
   };
@@ -685,15 +750,23 @@ function getZoneForProgress(progress) {
 
 function pickNextLocation(excludeId) {
   const zone = getZoneForProgress(state.progress);
+  const zoneLocations = LOCATIONS.filter(loc => loc.zone === zone.id);
 
-  let eligible = LOCATIONS.filter(loc => loc.zone === zone.id);
+  // Prefer locations in this zone the player hasn't seen yet.
+  let eligible = zoneLocations.filter(loc => !state.visited.has(loc.id));
   if (eligible.length === 0) {
-    // Fallback in case a zone has no locations defined.
-    eligible = LOCATIONS;
+    // Every location in this zone has already been visited. Repeating one
+    // is unavoidable at that point, but still avoid an immediate repeat of
+    // the current room if there's any other option.
+    eligible = zoneLocations;
+    if (eligible.length > 1 && excludeId) {
+      const withoutCurrent = eligible.filter(l => l.id !== excludeId);
+      if (withoutCurrent.length > 0) eligible = withoutCurrent;
+    }
   }
-  if (eligible.length > 1 && excludeId) {
-    const withoutCurrent = eligible.filter(l => l.id !== excludeId);
-    if (withoutCurrent.length > 0) eligible = withoutCurrent;
+  if (eligible.length === 0) {
+    // Fallback in case a zone has no locations defined at all.
+    eligible = LOCATIONS;
   }
   return pickWeighted(eligible, l => l.weight);
 }
@@ -763,6 +836,7 @@ function resolveChoice(choice) {
 
     const next = pickNextLocation(state.currentLocationId);
     state.currentLocationId = next.id;
+    state.visited.add(next.id);
 
     const newZone = getZoneForProgress(state.progress);
     if (newZone.id !== prevZone.id) {
@@ -856,13 +930,37 @@ function renderLocation(location) {
     const label = document.createElement('span');
     label.className = 'choice-label';
     label.textContent = choice.label;
+    const fill = document.createElement('span');
+    fill.className = 'choice-fill';
     btn.appendChild(label);
-    btn.addEventListener('click', () => resolveChoice(choice));
+    btn.appendChild(fill);
+    btn.addEventListener('click', () => selectChoice(choice, btn, buttonMap));
     choicesEl.appendChild(btn);
     buttonMap.set(choice, btn);
   });
 
   renderPoofo(location, buttonMap);
+}
+
+// How long the pulse + fill-bar animation plays before the outcome modal
+// (and any state changes) actually happen.
+const CHOICE_SELECT_ANIMATION_MS = 1000;
+
+// Plays the "selected" visual (pulse + fill bar sweeping across the
+// button) on the clicked choice, locks out further input, then resolves
+// the choice once the animation has finished.
+function selectChoice(choice, btn, buttonMap) {
+  if (state.ended || btn.disabled) return;
+
+  buttonMap.forEach(b => { b.disabled = true; });
+  const poofoBtn = document.querySelector('.poofo-btn');
+  if (poofoBtn) poofoBtn.disabled = true;
+
+  btn.classList.add('choice-selected');
+  const fill = btn.querySelector('.choice-fill');
+  if (fill) fill.classList.add('choice-fill-active');
+
+  setTimeout(() => resolveChoice(choice), CHOICE_SELECT_ANIMATION_MS);
 }
 
 // Small inline icon marking Poofo's recommended choice.
