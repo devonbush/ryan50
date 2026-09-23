@@ -14,6 +14,8 @@
     --accent: #caa15d;
     --accent-dim: #8a6d1f;
     --danger: #b23a3a;
+    --danger-bg: #f1ddd4;
+    --danger-text-dim: #7a4a42;
     --penalty-empty: #4a2b2b;
   }
 
@@ -284,6 +286,18 @@
     text-align: center;
   }
 
+  /* Penalty/game-over messages get a lightened box instead of sitting
+     directly on the dark panel, since --danger red has poor contrast
+     against the dark brown background. */
+  .consequence.consequence-penalty,
+  .consequence.consequence-gameover {
+    border-top: none;
+    background: var(--danger-bg);
+    border: 1px solid var(--danger);
+    border-radius: 6px;
+    padding: 14px 16px;
+  }
+
   .consequence-message {
     color: var(--text-dim);
     margin: 0 0 6px;
@@ -293,6 +307,7 @@
   .consequence.consequence-penalty .consequence-message,
   .consequence.consequence-gameover .consequence-message {
     color: var(--danger);
+    font-weight: bold;
   }
 
   .consequence-detail {
@@ -302,46 +317,65 @@
     margin: 0 0 14px;
   }
 
-  /* ---- Inline zone-transition summary ---- */
-  .zone-entry {
-    padding: 10px 16px;
-    font-style: italic;
-    font-size: 0.85rem;
-    color: var(--text-dim);
-    background: rgba(202, 161, 93, 0.06);
-    border-bottom: 1px solid var(--panel-border);
+  .consequence.consequence-penalty .consequence-detail,
+  .consequence.consequence-gameover .consequence-detail {
+    color: var(--danger-text-dim);
   }
 
-  /* ---- End screens ---- */
-  #end-screen {
-    background: var(--panel);
-    border: 1px solid var(--panel-border);
-    border-radius: 8px;
-    overflow: hidden;
+  /* ---- Inline zone-transition (appears directly in the scrolling feed,
+     demarcated with generous vertical spacing + a double "===" divider,
+     instead of a modal) ---- */
+  .zone-transition {
+    margin: 64px 0;
     text-align: center;
   }
 
-  #end-screen img {
-    width: 100%;
-    display: block;
-    aspect-ratio: 16 / 9;
-    object-fit: cover;
+  .zone-divider {
+    font-family: 'Courier New', monospace;
+    color: var(--accent-dim);
+    line-height: 1.4;
+    letter-spacing: 2px;
+    overflow: hidden;
+    white-space: nowrap;
   }
 
-  #end-body {
-    padding: 24px 16px;
-  }
-
-  #end-title {
-    font-size: 1.5rem;
+  .zone-transition-title {
     color: var(--accent);
-    margin: 0 0 12px;
+    margin: 16px 0 8px;
+    font-size: 1.2rem;
   }
 
-  #end-message {
+  .zone-transition-message {
     color: var(--text-dim);
     margin: 0 0 20px;
     line-height: 1.5;
+  }
+
+  .zone-transition-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .zone-transition-actions .primary-btn {
+    flex: 1;
+    min-width: 140px;
+  }
+
+  .zone-transition-choice {
+    margin-top: 12px;
+    font-style: italic;
+    color: var(--text-dim);
+  }
+
+  /* ---- End entry (win/game-over, rendered as a location entry) ---- */
+  .end-entry {
+    text-align: center;
+  }
+
+  .end-entry .entry-description {
+    margin-bottom: 20px;
   }
 
   .primary-btn {
@@ -366,52 +400,6 @@
   }
 
   .hidden { display: none !important; }
-
-  /* ---- Zone transition modal ---- */
-  #zone-modal-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.6);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 16px;
-    z-index: 1000;
-  }
-
-  #zone-modal {
-    background: var(--panel);
-    border: 1px solid var(--panel-border);
-    border-radius: 8px;
-    padding: 24px;
-    max-width: 420px;
-    width: 100%;
-    text-align: center;
-  }
-
-  #zone-modal h2 {
-    color: var(--accent);
-    margin: 0 0 12px;
-    font-size: 1.3rem;
-  }
-
-  #zone-modal p {
-    color: var(--text-dim);
-    margin: 0 0 20px;
-    line-height: 1.5;
-  }
-
-  .modal-actions {
-    display: flex;
-    gap: 10px;
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-
-  .modal-actions .primary-btn {
-    flex: 1;
-    min-width: 140px;
-  }
 </style>
 </head>
 <body>
@@ -433,26 +421,6 @@
       <div class="penalty-points" id="penalty-points"></div>
     </div>
   </div>
-
-  <div id="end-screen" class="hidden">
-    <img id="end-image" src="" alt="">
-    <div id="end-body">
-      <h2 id="end-title"></h2>
-      <p id="end-message"></p>
-      <button class="primary-btn" id="restart-btn">Play Again</button>
-    </div>
-  </div>
-</div>
-
-<div id="zone-modal-backdrop" class="hidden">
-  <div id="zone-modal">
-    <h2 id="zone-modal-title"></h2>
-    <p id="zone-modal-message"></p>
-    <div class="modal-actions">
-      <button class="primary-btn" id="zone-modal-large">Send crypto to the local Poofo</button>
-      <button class="primary-btn" id="zone-modal-small">Say an oath</button>
-    </div>
-  </div>
 </div>
 
 <script>
@@ -465,7 +433,7 @@
    ========================================================================= */
 
 const CONFIG = {
-  winDistance: 20,   // total distance needed to win
+  winDistance: 24,   // total distance needed to win
   maxPenaltyPoints: 3, // penalty points (red Xs) that cause a game loss
   minTravel: 1,      // min distance gained per action
   maxTravel: 3,      // max distance gained per action
@@ -477,9 +445,9 @@ const CONFIG = {
 // the player's current zone are eligible to be picked next. Boundaries are
 // also drawn as markers on the progress bar.
 const ZONES = [
-  { id: 1, name: 'a new area', min: 0, max: 7 },
-  { id: 2, name: 'a new area', min: 8, max: 14 },
-  { id: 3, name: 'a new area', min: 15, max: 20 },
+  { id: 1, name: 'a new area', min: 0, max: 9 },
+  { id: 2, name: 'a new area', min: 8, max: 16 },
+  { id: 3, name: 'a new area', min: 15, max: 24 },
 ];
 
 // Poofo's possible hints. Each time Poofo is consulted, one entry is picked
@@ -489,10 +457,10 @@ const ZONES = [
 // one. Edit text/accuracy/weight freely, and add or remove entries.
 const POOFO_HINTS = [
   { text: 'The Poofo seems sure of himself.', accuracy: 0.9 },
-  { text: 'The Poofo lazily dispenses some guidance.', accuracy: 0.6 },
+  { text: 'The Poofo lazily dispenses some guidance.', accuracy: 0.8 },
   { text: 'The Poofo gives advice, but seems more interested in his off-track betting app.', accuracy: 0.1 },
   { text: 'The Poofo gives advice, but seems more interested in checking his crypto portfolio.', accuracy: 0.1 },
-  { text: 'The Poofo mumbles something, but you\'re not sure if he\'s actually awake.', accuracy: 0.2 },
+  { text: 'The Poofo mumbles something, but you\'re not sure if he\'s actually awake.', accuracy: 0.1 },
 ];
 
 // Each choice has a single, fixed outcome (no randomness in *what*
@@ -505,6 +473,18 @@ const POOFO_HINTS = [
 // outcome.text is shown inline, right in the scrolling feed, after the
 // choice is made.
 
+// The player always starts here, before any zone locations. It has no
+// `zone` and lives outside LOCATIONS, so it's never picked by the normal
+// zone-based selection (pickNextLocation) — newGame() always sends the
+// player here first.
+const INTRO_LOCATION = {
+  id: 'loc_intro', name: 'Welcome', image: 'images/loc_intro.jpeg',
+  description: '"Fffffrummm, happy ffffffiffftieth birthday! \n  Frum, ffffor your fffiftieth, you must go on a mystical quest fffor a rare item.  Choose your paths wisely."',
+  choices: [
+    { label: 'Begin', outcome: { type: 'normal', text: 'You begin' } },
+  ],
+};
+
 // Locations the player can land on. Each has a `zone` (1, 2, or 3 — see
 // ZONES above) and only locations in the player's current zone are
 // eligible to be picked next. `weight` controls relative likelihood among
@@ -513,17 +493,16 @@ const POOFO_HINTS = [
 const LOCATIONS = [
   // --- Zone 1 (progress 0-7) ---
   {
-    id: 'loc_theRestaurant', name: 'The Restaurant', image: 'images/location-1.svg',
-    description: 'You arrive at a fine dining establishment.  A penguin shows you to your table.  Another enthusiastic penguin approaches.',
+    id: 'loc_theRestaurant', name: 'The Restaurant', image: 'images/loc_theRestaurant.jpeg',
+    description: 'You arrive at a fine dining establishment.  One penguin shows you to your table.  Another, enthusiastic, penguin approaches.',
     zone: 1, weight: 1,
     choices: [
-      { label: 'Order something from the liquor bar', outcome: { type: 'gameover', text: 'It\'s too late.' } },
-      { label: 'Order a fried wonton sandwich', outcome: { type: 'gameover', text: 'It\'s too late' } },
-      { label: 'Ask about Tux', outcome: { type: 'normal', text: 'Puffins appreciates your inquiry.  You have a delightful meal, and continue...' } },
+      { label: 'Order something from the liquor bar', outcome: { type: 'penalty', text: 'Ooof, that\'s a strong drink' } },
+      { label: 'Order a fried wonton sandwich', outcome: { type: 'normal', text: 'Mmm... tasty.' } },
     ],
   },
   {
-    id: 'loc_thePawpawPatch', name: 'The PawPaw Patch', image: 'images/location-2.svg',
+    id: 'loc_thePawpawPatch', name: 'The PawPaw Patch', image: 'images/loc_thePawpawPatch.png',
     description: 'You don\'t really know what this is...',
     zone: 1, weight: 1,
     choices: [
@@ -532,28 +511,27 @@ const LOCATIONS = [
     ],
   },
   {
-    id: 'loc_theRacetrack', name: 'The racetrack', image: 'images/location-4.svg',
+    id: 'loc_theRacetrack', name: 'The racetrack', image: 'images/loc_theRacetrack.jpeg',
     description: 'You approach a racetrack.  A number of cars seem lined up, ready to race.  You need to place a wager.',
     zone: 1, weight: 1,
     choices: [
       { label: 'The MrweepVan', outcome: { type: 'penalty', text: 'The engine overheats immediately' } },
       { label: 'The Poofo car', outcome: { type: 'normal', text: 'The race starts.  You get bored quickly, and move along' } },
       { label: 'The Datsun', outcome: { type: 'normal', text: 'The race starts.  You get bored quickly, and move along' } },
-      { label: 'The HoneyBear car', outcome: { type: 'normal', text: 'The race starts.  You get bored quickly, and move along' } },
       { label: 'The Pantera', outcome: { type: 'penalty', text: 'A multi-car pileup quickly ensues.  The Pantera does not escape' } },
     ],
   },
   {
-    id: 'loc_theWwyvSet', name: 'the WWYV set', image: 'images/location-5.svg',
-    description: 'It\'s a taping of WWYV at an offsite location!  You\'re excited to get involved',
+    id: 'loc_theWwyvSet', name: 'the WWYV set', image: 'images/loc_theWwyvSet.jpeg',
+    description: 'It\'s a taping of WWYV at an offsite location!  You\'re excited to get involved.',
     zone: 1, weight: 1,
     choices: [
       { label: 'Watch the taping', outcome: { type: 'normal', text: 'That was a half-hour well spent.  Time to move on...' } },
-      { label: 'Volunteer as a contestant', outcome: { type: 'gameover', text: 'The taping gets out of hand -- you get air-shredded and thrown in the Vatchit pit.' } },
+      { label: 'Volunteer as a contestant', outcome: { type: 'penalty', text: 'You make poor choices involving the SnoKids.  "to ... the ... Vatch-it Pit."' } },
     ],
   },
   {
-    id: 'loc_aHospital', name: 'A Hospital', image: 'images/location-5.svg',
+    id: 'loc_aHospital', name: 'A Hospital', image: 'images/loc_aHospital.jpeg',
     description: 'You find yourself outside a large medical center.  Even from the parking lot, you can hear a doctor being paged over the intercom',
     zone: 1, weight: 1,
     choices: [
@@ -563,18 +541,27 @@ const LOCATIONS = [
     ],
   },
   {
-    id: 'loc_residentialArea', name: 'Residential area', image: 'images/location-5.svg',
-    description: 'You walk through a new residential development.  A number of bears are installing shingles on one of the houses',
+    id: 'loc_residentialArea', name: 'Residential area', image: 'images/loc_residentialArea.jpeg',
+    description: 'You walk through a new residential development.  A number of bears are working on the roof of an apartment',
     zone: 1, weight: 1,
     choices: [
-      { label: 'Say hi to Roofo', outcome: { type: 'penalty', text: 'Poofo says: "Mmmmm... this didn\'t advance the plot at all"' } },
-      { label: 'Adivse Roofo on OSHA best practices', outcome: { type: 'normal', text: 'Roofo says "Thanks for the tip.  A safe workplace is a happy workplace!"'} },
+      { label: 'Say hi to Roofo', outcome: { type: 'penalty', text: 'Poofo says: "Mmmmm... he\'s not on my list."' } },
+      { label: 'Advise Roofo on OSHA best practices', outcome: { type: 'normal', text: 'Roofo says "Thanks for the tip.  A safe workplace is a happy workplace!"'} },
     ],
   },
-
+  {
+    id: 'loc_moviePlex', name: 'MoviePlex', image: 'images/loc_moviePlex.jpeg',
+    description: 'A movie theater is in front of you.  Several movies are playing on various screens.  It would be nice to cool off inside.',
+    zone: 3, weight: 1,
+    choices: [
+      { label: 'Watch the new Ape-Man movie', outcome: { type: 'normal', text: 'Well, that certainly was a movie that was not based on a book.' } },
+      { label: 'Visit the snack counter', outcome: { type: 'penalty', text: 'Yowch, that popcorn was expensive and stale.  You don\'t feel so good...' } },
+      { label: 'Hang out in the lobby', outcome: { type: 'normal', text: 'Sure, whatever' } },
+    ],
+  },
   // --- Zone 2 (progress 8-14) ---
   {
-    id: 'loc_theGyroStand', name: 'The Gyro stand', image: 'images/location-3.svg',
+    id: 'loc_theGyroStand', name: 'The Gyro stand', image: 'images/loc_theGyroStand.jpeg',
     description: 'You approach a small food stall.  It\'s staffed by a friendly, talking bear.',
     zone: 2, weight: 1,
     choices: [
@@ -584,34 +571,34 @@ const LOCATIONS = [
     ],
   },
   {
-    id: 'loc_kmrfStudios', name: 'KMRF Studios', image: 'images/location-6.svg',
-    description: 'You appraoch a broadcasting center.  It seems unmanned, but several tape machines are spinning.',
+    id: 'loc_kmrfStudios', name: 'KMRF Studios', image: 'images/loc_kmrfStudios.jpeg',
+    description: 'You approach a broadcasting center.  It seems unmanned, but several tape machines are spinning.',
     zone: 2, weight: 1,
     choices: [
       { label: 'See what\'s playing', outcome: { type: 'penalty', text: 'Wow, that was a lot of split screen.  You need a rest.' } },
-      { label: 'Continue on', outcome: { type: 'normal', text: 'Good choice, the FCC arrives just after you had left.' } },
+      { label: 'Keep walking', outcome: { type: 'normal', text: 'Good choice, the FCC arrives just after you had left.' } },
     ],
   },
   {
-    id: 'loc_frozenFoodWarehouse', name: 'Frozen Food Warehouse', image: 'images/location-7.svg',
+    id: 'loc_frozenFoodWarehouse', name: 'Frozen Food Warehouse', image: 'images/loc_frozenFoodWarehouse.webp',
     description: 'You arrive at a large warehouse. Trucks are loading and unloading frozen foods.',
     zone: 2, weight: 1,
     choices: [
       { label: 'Go inside', outcome: { type: 'penalty', text: '"I say!  You\'re not allowed in here"' } },
-      { label: 'Conitnue on', outcome: { type: 'normal', text: 'You hitch a ride on one of the trucks. The truck advertises that it "brings you fruits and vegetables"' } },
+      { label: 'Hitch a ride on a truck', outcome: { type: 'normal', text: 'You hitch a ride on one of the trucks. The truck advertises that it "brings you fruits and vegetables"' } },
     ],
   },
   {
-    id: 'loc_aSidewalk', name: 'A Sidewalk', image: 'images/location-7.svg',
+    id: 'loc_aSidewalk', name: 'A Sidewalk', image: 'images/loc_aSidewalk.jpeg',
     description: 'You walk down a sidewalk.  It looks like Baby Yeti is nearby having trouble opening a pudding cup.  She says "UUIIUUAOOOAAAIIIAAAHHHH".',
     zone: 2, weight: 1,
     choices: [
       { label: 'Help her', outcome: { type: 'gameover', text: 'You fool!  Baby Yeti never starts her cries with a "U".  It was the Necromancer in disguise.' } },
-      { label: 'Conitnue on', outcome: { type: 'normal', text: '"That pudding cup probably had artifical colors in it anyway."  You move on ' } },
+      { label: 'Walk past', outcome: { type: 'normal', text: '"That pudding cup probably had artificial colors in it anyway."  You move on ' } },
     ],
   },
   {
-    id: 'loc_outside', name: 'Outside', image: 'images/location-7.svg',
+    id: 'loc_outside', name: 'Outside', image: 'images/loc_outside.jpeg',
     description: 'Walking along the sidewalk, a fweeb approaches.  They ask for a hug, but you\'re worried they might not hug nice.',
     zone: 2, weight: 1,
     choices: [
@@ -620,10 +607,20 @@ const LOCATIONS = [
       { label: 'Change your fweeb suit', outcome: { type: 'gameover', text: 'Yikes, it\'s the HAIRY HUGGER!!!  He catches you just as your fweeb suit was mid-change.  They\'re all bad' } },
     ],
   },
+  {
+    id: 'loc_lowAttention', name: 'Low attention gang', image: 'images/loc_lowAttention.jpeg',
+    description: 'You come across a low-attention gathering of animals, possibly doing drugs.',
+    zone: 2, weight: 1,
+    choices: [
+      { label: 'Run away', outcome: { type: 'normal', text: 'A narrow escape' } },
+      { label: 'Ask if they\'ve got drugs', outcome: { type: 'penalty', text: 'If RCMP had a voice, you\'d be in even bigger trouble' } },
+      { label: 'Ask for directions', outcome: { type: 'penalty', text: '<singing> I wanna hippo-potamus for Christ-mas...' } },
+    ],
+  },
 
   // --- Zone 3 (progress 15-20) ---
   {
-    id: 'loc_anIcePool', name: 'An Ice Pool', image: 'images/location-8.svg',
+    id: 'loc_anIcePool', name: 'An Ice Pool', image: 'images/loc_anIcePool.jpeg',
     description: 'A large pool, with chunks of ice floating about. This place looks refreshing.  ',
     zone: 3, weight: 1,
     choices: [
@@ -632,40 +629,51 @@ const LOCATIONS = [
     ],
   },
   {
-    id: 'loc_bearRoom', name: 'Bear\'s room', image: 'images/location-9.svg',
+    id: 'loc_bearRoom', name: 'Bear\'s room', image: 'images/loc_bearRoom.jpeg',
     description: 'You approach Bear\'s room by the window.  Bear is happy to welcome you',
     zone: 3, weight: 1,
     choices: [
       { label: 'Put on a collar', outcome: { type: 'normal', text: 'This isn\'t very comfortable, but you\'re glad it makes Bear feel safe.' } },
-      { label: 'Decline the collar', outcome: { type: 'penalty', text: 'ZAP.' } },
+      { label: 'Decline the collar', outcome: { type: 'penalty', text: '<<ZAP>>' } },
     ],
   },
   {
-    id: 'loc_theFamousFerb', name: 'The Famous Ferb!', image: 'images/location-9.svg',
+    id: 'loc_theFamousFerb', name: 'The Famous Ferb!', image: 'images/loc_theFamousFerb.jpeg',
     description: 'It\'s the Famous Ferb!  He looks like he\'s just about to burst into song',
     zone: 3, weight: 1,
     choices: [
       { label: 'Stay and listen', outcome: { type: 'normal', text: 'A fine concert indeed, and you qualify for some frequent flier miles.' } },
-      { label: 'Continue on', outcome: { type: 'penalty', text: '"Rrrrrrrrrr... Vatch concert!" <<shred shred>>' } },
+      { label: 'Keep going', outcome: { type: 'penalty', text: '"Rrrrrrrrrr... Vatch concert!" <<shred shred>>' } },
     ],
   },
   {
-    id: 'loc_moviePlex', name: 'MoviePlex', image: 'images/location-9.svg',
-    description: 'A movie theater is in front of you.  Several movies are playing on various screens.  It would be nice to cool off inside.',
+    id: 'loc_321game', name: '3-2-1 room', image: 'images/loc_321game.jpeg',
+    description: 'You are challenged to a game of 3-2-1 in Ryan\'s old room.',
     zone: 3, weight: 1,
     choices: [
-      { label: 'Watch the new Ape-Man movie', outcome: { type: 'normal', text: 'Well, that certainly was a movie that was not based on a book.' } },
-      { label: 'Visit the snack counter', outcome: { type: 'penalty', text: 'Yowch, that popcorn was expensive and stale.  You don\'t feel so good...' } },
-      { label: 'Hang out in the lobby', outcome: { type: 'normal', text: 'Sure, whatever' } },
+      { label: 'Go for the Vatch tug', outcome: { type: 'penalty', text: '<<shred shred>>' } },
+      { label: 'Focus on an extra point', outcome: { type: 'penalty', text: 'You fail to secure the hippo, and lose the game' } },
+      { label: '"Death grip on the hippo"', outcome: { type: 'normal', text: 'Ah, a big score results!' } },
     ],
   },
   {
-    id: 'loc_theTennisCourts', name: 'the Tennis courts', image: 'images/location-10.svg',
+    id: 'loc_jnGolf', name: 'JN Golf', image: 'images/loc_jnGolf.png',
+    description: 'You are challenged to a game of Jack Nicklaus golf.  The computer looks very old.  You need to pick a course...',
+    zone: 3, weight: 1,
+    choices: [
+      { label: 'Choose Castle Pines', outcome: { type: 'normal', text: 'What a shot!' } },
+      { label: 'Choose St. Andrews', outcome: { type: 'penalty', text: 'AUCK!! That\'s not a JN Golf course!!' } },
+      { label: 'Choose Desert Mountain', outcome: { type: 'normal', text: 'A golf legend!' } },
+    ],
+  },
+  
+  {
+    id: 'loc_theTennisCourts', name: 'the Tennis courts', image: 'images/loc_tennisCourts.jpeg',
     description: 'A tennis match is in full swing.  Several hard-fought points end with questionable calls.  You contemplate getting involved...',
     zone: 3, weight: 1,
     choices: [
       { label: 'Keep your opinions to yourself', outcome: { type: 'normal', text: 'Gallant would approve.  You journey onward.' } },
-      { label: 'Go to the replay booth', outcome: { type: 'gameover', text: 'YEETTTIIIIIIIIIIIIII!!!!!!!   Thanks for coming up!' } },
+      { label: 'Inquire at the replay booth', outcome: { type: 'gameover', text: 'YEETTTIIIIIIIIIIIIII!!!!!!!   Thanks for coming up!' } },
     ],
   },
 ];
@@ -675,12 +683,12 @@ const END_TEXT = {
     title: 'The Striped Poofo!!!!',
     goodMessage: 'You found it!  At last your quest is at an end.  You retire to a life of luxury.',
     badMessage: 'You at last reach the mythical Striped Poofo.  Unfortunately, as you publicize your discovery, your assets are confiscated for fraudulent crypto activity. You retire to a life of poverty',
-    image: 'images/win.svg',
+    image: 'images/stripedPoofo.JPG',
   },
   gameover: {
     title: 'Game over',
-    message: 'Placeholder defeat text.',
-    image: 'images/gameover.svg',
+    message: 'Maybe try Vatching it next time',
+    image: 'images/gameover.jpeg',
   },
 };
 
@@ -692,27 +700,31 @@ const END_TEXT = {
 
 let state;
 
+// Debug mode (?debug=true in the URL) dumps every location plus both end
+// screens into the feed on load, so all the artwork can be eyeballed at
+// once without playing through the whole game.
+function isDebugMode() {
+  return new URLSearchParams(window.location.search).get('debug') === 'true';
+}
+
 function newGame() {
-  // Pick a random zone-1 location to start at (weighted the same way later
-  // location picks are), instead of always starting at the same spot.
-  const startLocation = pickWeighted(LOCATIONS.filter(l => l.zone === 1), l => l.weight);
+  // The game always starts at the predefined intro location, not a random
+  // zone-1 location.
   state = {
     progress: 0,
     penaltyPoints: 0,
-    currentLocationId: startLocation.id,
-    visited: new Set([startLocation.id]),
+    currentLocationId: INTRO_LOCATION.id,
+    visited: new Set([INTRO_LOCATION.id]),
     ended: false,
     gaveCrypto: false,
   };
   document.getElementById('scene-feed').innerHTML = '';
-  appendLocationEntry(getLocation(state.currentLocationId));
+  appendLocationEntry(INTRO_LOCATION);
   updateHud();
-  document.getElementById('end-screen').classList.add('hidden');
-  document.getElementById('scene').classList.remove('hidden');
-}
 
-function getLocation(id) {
-  return LOCATIONS.find(l => l.id === id);
+  if (isDebugMode()) {
+    appendDebugGallery();
+  }
 }
 
 function randomInt(min, max) {
@@ -803,7 +815,7 @@ function resolveChoice(choice, entryEl) {
       return;
     }
     if (state.penaltyPoints >= CONFIG.maxPenaltyPoints) {
-      endGame('gameover', 'Owwwh, rats.  That\'s too many penaly points.');
+      endGame('gameover', 'Owwwh, rats.  That\'s too many penalty points.');
       return;
     }
     if (state.progress >= CONFIG.winDistance) {
@@ -817,7 +829,7 @@ function resolveChoice(choice, entryEl) {
 
     const newZone = getZoneForProgress(state.progress);
     if (newZone.id !== prevZone.id) {
-      showZoneTransitionModal(newZone, () => appendLocationEntry(next));
+      appendZoneTransitionEntry(newZone, () => appendLocationEntry(next));
     } else {
       appendLocationEntry(next);
     }
@@ -864,51 +876,68 @@ function appendConsequence(entryEl, outcome, distance, onContinue) {
 // Shown once whenever the player's progress crosses into a new zone.
 // Purely flavor for now (a gold prompt from the zone's Poofo) — the choice
 // has no gameplay effect yet, beyond being remembered for the win text.
-function showZoneTransitionModal(zone, onDismiss) {
-  const backdrop = document.getElementById('zone-modal-backdrop');
-  const largeBtn = document.getElementById('zone-modal-large');
-  const smallBtn = document.getElementById('zone-modal-small');
-
-  document.getElementById('zone-modal-title').textContent = `You have entered ${zone.name}`;
-  document.getElementById('zone-modal-message').textContent =
-    `A beep on your FoFynder app indicates you are now in a different Local Poofo area.`;
-
-  backdrop.classList.remove('hidden');
-
-  function choose(buttonEl) {
-    backdrop.classList.add('hidden');
-    largeBtn.removeEventListener('click', onLarge);
-    smallBtn.removeEventListener('click', onSmall);
-    appendZoneEntry(zone, buttonEl.textContent);
-    onDismiss();
-  }
-  function onLarge() { state.gaveCrypto = true; choose(largeBtn); }
-  function onSmall() { choose(smallBtn); }
-
-  largeBtn.addEventListener('click', onLarge);
-  smallBtn.addEventListener('click', onSmall);
-}
-
-// A small inline record of a zone transition + the gold choice made there,
-// so it stays visible when scrolling back through the feed.
-function appendZoneEntry(zone, choiceText) {
+// Rendered directly into the scrolling feed (rather than a modal),
+// demarcated with generous vertical spacing and a double "===" divider.
+function appendZoneTransitionEntry(zone, onContinue) {
   const feed = document.getElementById('scene-feed');
+  const divider = '='.repeat(48);
+
   const entry = document.createElement('div');
-  entry.className = 'zone-entry';
-  entry.textContent = `You have entered ${zone.name}. You chose: ${choiceText}`;
+  entry.className = 'zone-transition';
+
+  [1, 2].forEach(() => {
+    const dividerLine = document.createElement('div');
+    dividerLine.className = 'zone-divider';
+    dividerLine.textContent = divider;
+    entry.appendChild(dividerLine);
+  });
+
+  const title = document.createElement('h2');
+  title.className = 'zone-transition-title';
+  title.textContent = `You have entered ${zone.name}`;
+  entry.appendChild(title);
+
+  const message = document.createElement('p');
+  message.className = 'zone-transition-message';
+  message.textContent = 'A beep on your FoFynder app indicates you are now in a different Local Poofo area.';
+  entry.appendChild(message);
+
+  const actions = document.createElement('div');
+  actions.className = 'zone-transition-actions';
+  entry.appendChild(actions);
+
+  const largeBtn = document.createElement('button');
+  largeBtn.className = 'primary-btn';
+  largeBtn.textContent = 'Send crypto to the local Poofo';
+  const smallBtn = document.createElement('button');
+  smallBtn.className = 'primary-btn';
+  smallBtn.textContent = 'Say an oath';
+  actions.appendChild(largeBtn);
+  actions.appendChild(smallBtn);
+
   feed.appendChild(entry);
   scrollFeedToBottom();
+
+  function choose(buttonEl) {
+    largeBtn.disabled = true;
+    smallBtn.disabled = true;
+
+    const choiceEl = document.createElement('p');
+    choiceEl.className = 'zone-transition-choice';
+    choiceEl.textContent = `You chose: ${buttonEl.textContent}`;
+    entry.appendChild(choiceEl);
+
+    scrollFeedToBottom();
+    onContinue();
+  }
+
+  largeBtn.addEventListener('click', () => { state.gaveCrypto = true; choose(largeBtn); });
+  smallBtn.addEventListener('click', () => choose(smallBtn));
 }
 
 function endGame(type, message) {
   state.ended = true;
-  document.getElementById('scene').classList.add('hidden');
-
-  const info = END_TEXT[type];
-  document.getElementById('end-image').src = info.image;
-  document.getElementById('end-title').textContent = info.title;
-  document.getElementById('end-message').textContent = message || info.message;
-  document.getElementById('end-screen').classList.remove('hidden');
+  appendEndEntry(type, message);
 }
 
 /* ---- Rendering ---- */
@@ -974,6 +1003,54 @@ function appendLocationEntry(location) {
 
   renderPoofo(location, buttonMap, poofoEl);
   scrollFeedToBottom();
+}
+
+// Appends the win/game-over result to the bottom of the feed, styled like
+// a location entry (image, title, message) but with a "Play Again" button
+// in place of choices, so the player's full journey stays visible above it.
+function appendEndEntry(type, message) {
+  const info = END_TEXT[type];
+  const feed = document.getElementById('scene-feed');
+
+  const entry = document.createElement('div');
+  entry.className = 'location-entry end-entry';
+
+  const img = document.createElement('img');
+  img.className = 'entry-image';
+  img.src = info.image;
+  img.alt = info.title;
+  entry.appendChild(img);
+
+  const body = document.createElement('div');
+  body.className = 'entry-body';
+
+  const name = document.createElement('h2');
+  name.className = 'entry-name';
+  name.textContent = info.title;
+  body.appendChild(name);
+
+  const description = document.createElement('p');
+  description.className = 'entry-description';
+  description.textContent = message || info.message;
+  body.appendChild(description);
+
+  const restartBtn = document.createElement('button');
+  restartBtn.className = 'primary-btn';
+  restartBtn.textContent = 'Play Again';
+  restartBtn.addEventListener('click', newGame);
+  body.appendChild(restartBtn);
+
+  entry.appendChild(body);
+  feed.appendChild(entry);
+  scrollFeedToBottom();
+}
+
+// Appends every location plus both end screens right after the intro, so
+// every image can be reviewed in one scroll. See isDebugMode above.
+function appendDebugGallery() {
+  LOCATIONS.forEach(appendLocationEntry);
+  appendEndEntry('win', END_TEXT.win.goodMessage);
+  appendEndEntry('gameover', END_TEXT.gameover.message);
 }
 
 // How long the pulse + fill-bar animation plays before the consequence
@@ -1090,8 +1167,6 @@ function updateHud() {
     penaltyEl.appendChild(span);
   }
 }
-
-document.getElementById('restart-btn').addEventListener('click', newGame);
 
 renderZoneMarkers();
 newGame();

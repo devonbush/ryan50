@@ -4,6 +4,7 @@ A single-page, no-build text/image adventure. Open `index.html` in a browser to 
 
 ## How it works
 
+- Every game starts at the fixed `INTRO_LOCATION` (outside the zone system, so it's never picked again). From there, play proceeds into the zones as normal.
 - Each action moves the player 1-3 distance toward a win at 20 total distance (see `CONFIG.winDistance`).
 - Each choice has a fixed, determined outcome (`outcome: { type, text }` — no randomness in *what* happens, only *how far* you travel). `type` is one of `normal`, `penalty`, `heal`, or `gameover`. The outcome text shows in a modal right after the choice and is also recorded in the journey log.
 - `penalty` gives the player a penalty point (shown as a red X in the HUD); `heal` removes one. Reaching `CONFIG.maxPenaltyPoints` (default 3) ends the game, as does any `gameover` outcome directly.
@@ -14,6 +15,7 @@ A single-page, no-build text/image adventure. Open `index.html` in a browser to 
 
 Everything you'd want to fill in lives in the **CONTENT SECTION** near the top of the `<script>` block in `index.html`:
 
+- `INTRO_LOCATION` — the fixed location every game starts at (name, description, image path, choices). It has no `zone` and isn't part of `LOCATIONS`, so it never recurs after the intro.
 - `LOCATIONS` — name, description, image path, zone, weight, and choices (each with a fixed `outcome`) for each location. Give each new location an `id` of the form `loc_<camelCaseOfTheName>` (e.g. "Bear's room" → `loc_bearRoom`) — it just needs to be unique, nothing depends on numbering.
 - `ZONES` — the three progress ranges (min/max) locations are grouped into.
 - `POOFO_HINTS` — the hint texts Poofo can give and their accuracy.
