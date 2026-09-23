@@ -811,7 +811,11 @@ function resolveChoice(choice, entryEl) {
 
   appendConsequence(entryEl, outcome, distance, () => {
     if (outcome.type === 'gameover') {
-      endGame('gameover', outcome.text);
+      // The choice's own flavor text was already shown inline via
+      // appendConsequence just above; the end screen itself should show
+      // the game's overall defeat message (END_TEXT.gameover.message),
+      // not a repeat of that same choice text.
+      endGame('gameover');
       return;
     }
     if (state.penaltyPoints >= CONFIG.maxPenaltyPoints) {
