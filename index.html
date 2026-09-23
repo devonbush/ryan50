@@ -457,10 +457,9 @@ const ZONES = [
 // one. Edit text/accuracy/weight freely, and add or remove entries.
 const POOFO_HINTS = [
   { text: 'The Poofo seems sure of himself.', accuracy: 0.9 },
-  { text: 'The Poofo lazily dispenses some guidance.', accuracy: 0.8 },
+  { text: 'The Poofo mumbles something, but you\'re not sure if he\'s awake.', accuracy: 0.5 },
   { text: 'The Poofo gives advice, but seems more interested in his off-track betting app.', accuracy: 0.1 },
-  { text: 'The Poofo gives advice, but seems more interested in checking his crypto portfolio.', accuracy: 0.1 },
-  { text: 'The Poofo mumbles something, but you\'re not sure if he\'s actually awake.', accuracy: 0.1 },
+  { text: 'The Poofo mutters advice, but is mostly busy checking his crypto portFOlio.', accuracy: 0.1 },
 ];
 
 // Each choice has a single, fixed outcome (no randomness in *what*
@@ -478,8 +477,8 @@ const POOFO_HINTS = [
 // zone-based selection (pickNextLocation) — newGame() always sends the
 // player here first.
 const INTRO_LOCATION = {
-  id: 'loc_intro', name: 'Welcome', image: 'images/loc_intro.jpeg',
-  description: '"Fffffrummm, happy ffffffiffftieth birthday! \n  Frum, ffffor your fffiftieth, you must go on a mystical quest fffor a rare item.  Choose your paths wisely."',
+  id: 'loc_intro', name: 'Happy Birthday!', image: 'images/loc_intro.jpeg',
+  description: '"Fffffrummm, happy ffffffiffftieth birthday! \n  Frum, ffffor your fffiftieth, you must go on a journey fffar away.  Choose your path wisely."',
   choices: [
     { label: 'Begin', outcome: { type: 'normal', text: 'You begin' } },
   ],
@@ -522,7 +521,7 @@ const LOCATIONS = [
     ],
   },
   {
-    id: 'loc_theWwyvSet', name: 'the WWYV set', image: 'images/loc_theWwyvSet.jpeg',
+    id: 'loc_theWwyvSet', name: 'Watch What You Vatch', image: 'images/loc_theWwyvSet.jpeg',
     description: 'It\'s a taping of WWYV at an offsite location!  You\'re excited to get involved.',
     zone: 1, weight: 1,
     choices: [
@@ -589,8 +588,18 @@ const LOCATIONS = [
     ],
   },
   {
+    id: 'loc_peepHi', name: 'PEEEEEeeeeeeep!!!', image: 'images/puffins.jpeg',
+    description: 'HiiiiIIIIiiiiii.',
+    zone: 2, weight: 1,
+    choices: [
+      { label: 'Oh, Hey Puff', outcome: { type: 'gameover', text: '"Mrweeeeep, It\'s too late!!"' } },
+      { label: 'Buzz off, I\'m on a quest', outcome: { type: 'gameover', text: '"Mrweeeeep, It\'s too late!!"' }},
+      { label: 'Hi Puffins, how are you? that\'s a nice tuxedo you\'re wearing. How\'s Tux?', outcome: { type: 'normal', text: '"Peeep, thanks for asking!"' }},
+    ],
+  },
+  {
     id: 'loc_aSidewalk', name: 'A Sidewalk', image: 'images/loc_aSidewalk.jpeg',
-    description: 'You walk down a sidewalk.  It looks like Baby Yeti is nearby having trouble opening a pudding cup.  She says "UUIIUUAOOOAAAIIIAAAHHHH".',
+    description: 'It looks like Baby Yeti is nearby having trouble opening a pudding cup.  She says "UUIIUUAOOOAAAIIIAAAHHHH".',
     zone: 2, weight: 1,
     choices: [
       { label: 'Help her', outcome: { type: 'gameover', text: 'You fool!  Baby Yeti never starts her cries with a "U".  It was the Necromancer in disguise.' } },
@@ -599,7 +608,7 @@ const LOCATIONS = [
   },
   {
     id: 'loc_outside', name: 'Outside', image: 'images/loc_outside.jpeg',
-    description: 'Walking along the sidewalk, a fweeb approaches.  They ask for a hug, but you\'re worried they might not hug nice.',
+    description: 'A fweeb approaches.  They ask for a hug, but it\'s nighttime and you\'re worried they might not hug nice.',
     zone: 2, weight: 1,
     choices: [
       { label: 'Give a good hug', outcome: { type: 'normal', text: '"YaYaYaYaYa"' } },
@@ -625,7 +634,7 @@ const LOCATIONS = [
     zone: 3, weight: 1,
     choices: [
       { label: 'Go for a swim', outcome: { type: 'normal', text: 'That was refreshing.  Time to move on.' } },
-      { label: 'Set up a ticket booth', outcome: { type: 'penalty', text: 'I don\'t think you have a permit for that.' } },
+      { label: 'Set up a ticket booth', outcome: { type: 'penalty', text: 'You don\'t have a permit for that.' } },
     ],
   },
   {
@@ -633,7 +642,7 @@ const LOCATIONS = [
     description: 'You approach Bear\'s room by the window.  Bear is happy to welcome you',
     zone: 3, weight: 1,
     choices: [
-      { label: 'Put on a collar', outcome: { type: 'normal', text: 'This isn\'t very comfortable, but you\'re glad it makes Bear feel safe.' } },
+      { label: 'Put on a collar', outcome: { type: 'normal', text: 'It isn\'t very comfortable, but you\'re glad it makes Bear feel safe.' } },
       { label: 'Decline the collar', outcome: { type: 'penalty', text: '<<ZAP>>' } },
     ],
   },
@@ -652,8 +661,8 @@ const LOCATIONS = [
     zone: 3, weight: 1,
     choices: [
       { label: 'Go for the Vatch tug', outcome: { type: 'penalty', text: '<<shred shred>>' } },
-      { label: 'Focus on an extra point', outcome: { type: 'penalty', text: 'You fail to secure the hippo, and lose the game' } },
-      { label: '"Death grip on the hippo"', outcome: { type: 'normal', text: 'Ah, a big score results!' } },
+      { label: 'Grab an extra point', outcome: { type: 'penalty', text: 'You fail to secure the hippo, and lose the game' } },
+      { label: '"Death grip on the hippo"', outcome: { type: 'normal', text: 'Big score!!!' } },
     ],
   },
   {
@@ -687,7 +696,7 @@ const END_TEXT = {
   },
   gameover: {
     title: 'Game over',
-    message: 'Maybe try Vatching it next time',
+    message: 'Try Vatching it next time',
     image: 'images/gameover.jpeg',
   },
 };
@@ -819,7 +828,7 @@ function resolveChoice(choice, entryEl) {
       return;
     }
     if (state.penaltyPoints >= CONFIG.maxPenaltyPoints) {
-      endGame('gameover', 'Owwwh, rats.  That\'s too many penalty points.');
+      endGame('gameover', 'Too many penalty points--try vatching it instead.  Rrrr....');
       return;
     }
     if (state.progress >= CONFIG.winDistance) {
@@ -898,7 +907,7 @@ function appendZoneTransitionEntry(zone, onContinue) {
 
   const title = document.createElement('h2');
   title.className = 'zone-transition-title';
-  title.textContent = `You have entered ${zone.name}`;
+  title.textContent = `Entering new territory`;
   entry.appendChild(title);
 
   const message = document.createElement('p');
