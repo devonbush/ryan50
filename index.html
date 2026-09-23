@@ -211,7 +211,7 @@
     inset: 0;
     width: 0%;
     background: rgba(202, 161, 93, 0.35);
-    transition: width 1s linear;
+    transition: width 0.5s linear;
   }
 
   .choice-fill.choice-fill-active {
@@ -289,9 +289,8 @@
   /* Penalty/game-over messages get a lightened box instead of sitting
      directly on the dark panel, since --danger red has poor contrast
      against the dark brown background. */
-  .consequence.consequence-penalty,
-  .consequence.consequence-gameover {
-    border-top: none;
+  .consequence-box-penalty,
+  .consequence-box-gameover {
     background: var(--danger-bg);
     border: 1px solid var(--danger);
     border-radius: 6px;
@@ -304,8 +303,8 @@
     line-height: 1.5;
   }
 
-  .consequence.consequence-penalty .consequence-message,
-  .consequence.consequence-gameover .consequence-message {
+  .consequence-box-penalty .consequence-message,
+  .consequence-box-gameover .consequence-message {
     color: var(--danger);
     font-weight: bold;
   }
@@ -317,9 +316,28 @@
     margin: 0 0 14px;
   }
 
-  .consequence.consequence-penalty .consequence-detail,
-  .consequence.consequence-gameover .consequence-detail {
+  .consequence-box-penalty .consequence-detail,
+  .consequence-box-gameover .consequence-detail {
     color: var(--danger-text-dim);
+  }
+
+  /* "You travel N miles..." always renders below/outside the penalty box
+     (it's a sibling of .consequence-box, not a child), with generous
+     space above it and left-justified rather than centered. */
+  .travel-status {
+    margin-top: 28px;
+    text-align: left;
+  }
+
+  /* Dot slots are always present (reserving their width) and just toggle
+     visibility, so the "You travel N miles" label never shifts position
+     as the ellipsis fills in. */
+  .travel-dot {
+    opacity: 0;
+  }
+
+  .travel-dot.travel-dot-visible {
+    opacity: 1;
   }
 
   /* ---- Inline zone-transition (appears directly in the scrolling feed,
@@ -433,11 +451,11 @@
    ========================================================================= */
 
 const CONFIG = {
-  winDistance: 24,   // total distance needed to win
+  winDistance: 52,   // total distance needed to win
   maxPenaltyPoints: 3, // penalty points (red Xs) that cause a game loss
-  minTravel: 1,      // min distance gained per action
-  maxTravel: 3,      // max distance gained per action
-  poofoAppearChance: 0.7, // odds the "Consult the local Poofo" option shows up at a location
+  minTravel: 4,      // min distance gained per action
+  maxTravel: 6,      // max distance gained per action
+  poofoAppearChance: 0.5 // odds the "Consult the local Poofo" option shows up at a location
 };
 
 // The journey is divided into three zones by progress. Each location
@@ -445,9 +463,9 @@ const CONFIG = {
 // the player's current zone are eligible to be picked next. Boundaries are
 // also drawn as markers on the progress bar.
 const ZONES = [
-  { id: 1, name: 'a new area', min: 0, max: 9 },
-  { id: 2, name: 'a new area', min: 8, max: 16 },
-  { id: 3, name: 'a new area', min: 15, max: 24 },
+  { id: 1, name: 'a new area', min: 0, max: 19 },
+  { id: 2, name: 'a new area', min: 20, max: 36 },
+  { id: 3, name: 'a new area', min: 37, max: 52 },
 ];
 
 // Poofo's possible hints. Each time Poofo is consulted, one entry is picked
@@ -480,7 +498,7 @@ const INTRO_LOCATION = {
   id: 'loc_intro', name: 'Happy Birthday!', image: 'images/loc_intro.jpeg',
   description: '"Fffffrummm, happy ffffffiffftieth birthday! \n  Frum, ffffor your fffiftieth, you must go on a journey fffar away.  Choose your path wisely."',
   choices: [
-    { label: 'Begin', outcome: { type: 'normal', text: 'You begin' } },
+    { label: 'Begin', outcome: { type: 'normal', text: 'You start walking' } },
   ],
 };
 
@@ -588,13 +606,13 @@ const LOCATIONS = [
     ],
   },
   {
-    id: 'loc_peepHi', name: 'PEEEEEeeeeeeep!!!', image: 'images/puffins.jpeg',
-    description: 'HiiiiIIIIiiiiii.',
+    id: 'loc_peepHi', name: '"PEEEEEeeeeeeep!!!"', image: 'images/puffins.jpeg',
+    description: '"HiiiiIIIIiiiiii."',
     zone: 2, weight: 1,
     choices: [
-      { label: 'Oh, Hey Puff', outcome: { type: 'gameover', text: '"Mrweeeeep, It\'s too late!!"' } },
-      { label: 'Buzz off, I\'m on a quest', outcome: { type: 'gameover', text: '"Mrweeeeep, It\'s too late!!"' }},
-      { label: 'Hi Puffins, how are you? that\'s a nice tuxedo you\'re wearing. How\'s Tux?', outcome: { type: 'normal', text: '"Peeep, thanks for asking!"' }},
+      { label: '"Oh, Hey Puff"', outcome: { type: 'gameover', text: '"Mrweeeeep, It\'s too late!!"' } },
+      { label: '"Buzz off, I\'m on a quest"', outcome: { type: 'gameover', text: '"Mrweeeeep, It\'s too late!!"' }},
+      { label: '"Hi Puffins, how are you? that\'s a nice tuxedo you\'re wearing. How\'s Tux?"', outcome: { type: 'normal', text: '"Peeep, thanks for asking!"' }},
     ],
   },
   {
@@ -618,12 +636,12 @@ const LOCATIONS = [
   },
   {
     id: 'loc_lowAttention', name: 'Low attention gang', image: 'images/loc_lowAttention.jpeg',
-    description: 'You come across a low-attention gathering of animals, possibly doing drugs.',
+    description: 'You come across a gathering of low-attention animals, possibly doing drugs.',
     zone: 2, weight: 1,
     choices: [
       { label: 'Run away', outcome: { type: 'normal', text: 'A narrow escape' } },
-      { label: 'Ask if they\'ve got drugs', outcome: { type: 'penalty', text: 'If RCMP had a voice, you\'d be in even bigger trouble' } },
-      { label: 'Ask for directions', outcome: { type: 'penalty', text: '<singing> I wanna hippo-potamus for Christ-mas...' } },
+      { label: 'Ask if they\'ll share their drugs', outcome: { type: 'penalty', text: '"<singing> I wanna hippo-potamus for Christ-mas..."' } },
+      { label: 'Call Officer Poofo', outcome: { type: 'penalty', text: '"mmmm... not on my list."' } },
     ],
   },
 
@@ -657,7 +675,7 @@ const LOCATIONS = [
   },
   {
     id: 'loc_321game', name: '3-2-1 room', image: 'images/loc_321game.jpeg',
-    description: 'You are challenged to a game of 3-2-1 in Ryan\'s old room.',
+    description: 'You are challenged to a game of 3-2-1. There\'s an opening in the defense...',
     zone: 3, weight: 1,
     choices: [
       { label: 'Go for the Vatch tug', outcome: { type: 'penalty', text: '<<shred shred>>' } },
@@ -816,9 +834,14 @@ function resolveChoice(choice, entryEl) {
     state.penaltyPoints = Math.max(state.penaltyPoints - 1, 0);
   }
 
-  updateHud();
+  // The progress bar itself shouldn't move until whatever comes next
+  // (the next location, a zone transition, or an end screen) actually
+  // appears, so only the penalty marks update here.
+  updatePenaltyHud();
 
   appendConsequence(entryEl, outcome, distance, () => {
+    updateProgressBar();
+
     if (outcome.type === 'gameover') {
       // The choice's own flavor text was already shown inline via
       // appendConsequence just above; the end screen itself should show
@@ -849,28 +872,35 @@ function resolveChoice(choice, entryEl) {
   });
 }
 
-// Appends the outcome text (plus a penalty/travel detail line) and a
-// Continue button right into the location entry the player just chose
-// from, instead of a modal. Continuing runs onContinue.
+// Appends the outcome text (plus a penalty detail line) and a Continue
+// button right into the location entry the player just chose from,
+// instead of a modal. Continuing (for any non-gameover outcome) plays the
+// "You travel N miles..." status via playTravelStatus before running
+// onContinue; a gameover outcome runs onContinue immediately.
 function appendConsequence(entryEl, outcome, distance, onContinue) {
   const body = entryEl.querySelector('.entry-body');
 
   const consequence = document.createElement('div');
-  consequence.className = 'consequence consequence-' + outcome.type;
+  consequence.className = 'consequence';
+
+  // The message/detail/button live in their own box so that a later
+  // appended "You travel N miles..." status (a sibling of this box, not a
+  // child of it) renders below/outside the penalty highlight instead of
+  // inside it.
+  const box = document.createElement('div');
+  box.className = 'consequence-box consequence-box-' + outcome.type;
+  consequence.appendChild(box);
 
   const message = document.createElement('p');
   message.className = 'consequence-message';
   message.textContent = outcome.text;
-  consequence.appendChild(message);
+  box.appendChild(message);
 
-  let detail = '';
-  if (outcome.type === 'penalty') detail = "(that's a penalty point)";
-  else if (outcome.type === 'normal') detail = `(you travel ${distance} miles)`;
-  if (detail) {
+  if (outcome.type === 'penalty') {
     const detailEl = document.createElement('p');
     detailEl.className = 'consequence-detail';
-    detailEl.textContent = detail;
-    consequence.appendChild(detailEl);
+    detailEl.textContent = "(that's a penalty point)";
+    box.appendChild(detailEl);
   }
 
   const continueBtn = document.createElement('button');
@@ -878,12 +908,63 @@ function appendConsequence(entryEl, outcome, distance, onContinue) {
   continueBtn.textContent = outcome.type === 'gameover' ? 'Game Over' : 'Continue';
   continueBtn.addEventListener('click', () => {
     continueBtn.disabled = true;
-    onContinue();
+
+    if (outcome.type === 'gameover') {
+      onContinue();
+      return;
+    }
+
+    continueBtn.remove();
+    playTravelStatus(consequence, distance, onContinue);
   });
-  consequence.appendChild(continueBtn);
+  box.appendChild(continueBtn);
 
   body.appendChild(consequence);
   scrollFeedToBottom();
+}
+
+// How long the "You travel N miles..." status shows, with an ellipsis
+// that fills in one dot at a time, before onDone runs.
+const TRAVEL_PAUSE_MS = 2000;
+
+function playTravelStatus(container, distance, onDone) {
+  const dotCount = 3;
+
+  const statusEl = document.createElement('p');
+  statusEl.className = 'consequence-detail travel-status';
+
+  const label = document.createElement('span');
+  label.textContent = `You travel ${distance} miles`;
+  statusEl.appendChild(label);
+
+  // All three dot slots are rendered (and take up their layout space) from
+  // the start, just invisible — that way the reserved width never changes
+  // as dots turn on, so the label doesn't recenter/shift mid-animation.
+  const dotEls = [];
+  for (let i = 0; i < dotCount; i++) {
+    const dot = document.createElement('span');
+    dot.className = 'travel-dot';
+    dot.textContent = '.';
+    statusEl.appendChild(dot);
+    dotEls.push(dot);
+  }
+
+  container.appendChild(statusEl);
+  scrollFeedToBottom();
+
+  const dotInterval = TRAVEL_PAUSE_MS / dotCount;
+  let shown = 0;
+  const dotTimer = setInterval(() => {
+    if (shown < dotEls.length) {
+      dotEls[shown].classList.add('travel-dot-visible');
+      shown += 1;
+    }
+  }, dotInterval);
+
+  setTimeout(() => {
+    clearInterval(dotTimer);
+    onDone();
+  }, TRAVEL_PAUSE_MS);
 }
 
 // Shown once whenever the player's progress crosses into a new zone.
@@ -1068,7 +1149,7 @@ function appendDebugGallery() {
 
 // How long the pulse + fill-bar animation plays before the consequence
 // (and any state changes) actually appears.
-const CHOICE_SELECT_ANIMATION_MS = 1000;
+const CHOICE_SELECT_ANIMATION_MS = 500;
 
 // Plays the "selected" visual (thicker border + fill bar sweeping across
 // the button) on the clicked choice, locks out further input in this
@@ -1167,10 +1248,12 @@ function renderZoneMarkers() {
   });
 }
 
-function updateHud() {
+function updateProgressBar() {
   const pct = Math.min(100, (state.progress / CONFIG.winDistance) * 100);
   document.getElementById('progress-fill').style.width = pct + '%';
+}
 
+function updatePenaltyHud() {
   const penaltyEl = document.getElementById('penalty-points');
   penaltyEl.innerHTML = '';
   for (let i = 0; i < CONFIG.maxPenaltyPoints; i++) {
@@ -1179,6 +1262,11 @@ function updateHud() {
     span.className = i < state.penaltyPoints ? 'penalty-mark-full' : 'penalty-mark-empty';
     penaltyEl.appendChild(span);
   }
+}
+
+function updateHud() {
+  updateProgressBar();
+  updatePenaltyHud();
 }
 
 renderZoneMarkers();
