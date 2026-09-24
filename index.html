@@ -406,6 +406,33 @@
     margin-bottom: 20px;
   }
 
+  .stats-box {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin: 0 0 20px;
+    text-align: left;
+  }
+
+  .stats-title {
+    margin: 0 0 10px;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--accent);
+  }
+
+  .stats-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    color: var(--text-dim);
+  }
+
   .primary-btn {
     background: var(--accent);
     color: #1b1410;
@@ -543,8 +570,8 @@ const LOCATIONS = [
     zone: 1, weight: 1,
     choices: [
       { label: 'The MrweepVan', outcome: { type: 'penalty', text: 'The engine overheats immediately' } },
-      { label: 'The Poofo car', outcome: { type: 'normal', text: 'The race starts.  You get bored quickly, and move along' } },
-      { label: 'The Datsun', outcome: { type: 'normal', text: 'The race starts.  You get bored quickly, and move along' } },
+      { label: 'The Poofo car', outcome: { type: 'normal', text: 'The race starts. You get bored with the low stakes, and move along' } },
+      { label: 'The Datsun', outcome: { type: 'normal', text: 'The Datsun loses, but you make some cash on side bets with T-Bone' } },
       { label: 'The Pantera', outcome: { type: 'penalty', text: 'A multi-car pileup quickly ensues.  The Pantera does not escape' } },
     ],
   },
@@ -553,7 +580,7 @@ const LOCATIONS = [
     description: 'It\'s a taping of WWYV at an offsite location!  You\'re excited to get involved.',
     zone: 1, weight: 1,
     choices: [
-      { label: 'Watch the taping', outcome: { type: 'normal', text: 'That was a half-hour well spent.  Time to move on...' } },
+      { label: 'Watch the taping', outcome: { type: 'normal', text: 'You learn some helpful Vatching tips, and then move on...' } },
       { label: 'Volunteer as a contestant', outcome: { type: 'penalty', text: 'You make poor choices involving the SnoKids.  "to ... the ... Vatch-it Pit."' } },
     ],
   },
@@ -592,7 +619,7 @@ const LOCATIONS = [
     description: 'You approach a small food stall.  It\'s staffed by a friendly, talking bear.',
     zone: 2, weight: 1,
     choices: [
-      { label: 'Order a small gyro', outcome: { type: 'heal', text: 'Ah, a tasty bite.  You see why this shop stays in business' } },
+      { label: 'Order a small gyro', outcome: { type: 'heal', text: 'Tasty! You compliment the owner and move on' } },
       { label: 'Order a gigantamungous gyro', outcome: { type: 'penalty', text: '<<shred shred>> "Rrrrr... That\'s my size"' } },
       { label: 'Chat with the staffer', outcome: { type: 'penalty', text: 'You ignore Humph\'s yawns and give an extensive digression on your ideas for college football ranking systems.  Humph exhales in your face to get you to leave.' } },
     ],
@@ -602,8 +629,8 @@ const LOCATIONS = [
     description: 'You approach a broadcasting center.  It seems unmanned, but several tape machines are spinning.',
     zone: 2, weight: 1,
     choices: [
-      { label: 'See what\'s playing', outcome: { type: 'penalty', text: 'Wow, that was a lot of split screen.  You need a rest.' } },
-      { label: 'Keep walking', outcome: { type: 'normal', text: 'Good choice, the FCC arrives just after you had left.' } },
+      { label: 'See what\'s playing', outcome: { type: 'penalty', text: 'Ooof, too much MacGyver/Match Game split screen.' } },
+      { label: 'Keep walking', outcome: { type: 'normal', text: 'The FCC arrives just after you walk away...' } },
     ],
   },
   {
@@ -718,7 +745,7 @@ const LOCATIONS = [
 const END_TEXT = {
   win: {
     title: 'The Striped Poofo!!!!',
-    goodMessage: 'You found it!  At last your quest is at an end.  You retire to a life of luxury.',
+    goodMessage: 'You found it!  You sell your photos of the striped Poofo for big $$$ and retire to a life of luxury.',
     badMessage: 'You at last reach the mythical Striped Poofo.  Unfortunately, as you publicize your discovery, your assets are confiscated for fraudulent crypto activity. You retire to a life of poverty',
     image: 'images/stripedPoofo.JPG',
   },
@@ -791,6 +818,8 @@ function newGame() {
     visited: new Set([INTRO_LOCATION.id]),
     ended: false,
     gaveCrypto: false,
+    poofoConsultCount: 0,
+    poofoCorrectCount: 0,
   };
   sceneFeedEl.innerHTML = '';
   appendLocationEntry(INTRO_LOCATION);
@@ -1095,6 +1124,40 @@ function appendLocationEntry(location) {
   scrollFeedToBottom();
 }
 
+// Locations visited, penalty points, Poofo consults, and Poofo accuracy
+// (the fraction of consults where the highlighted choice was the actually
+// correct one), for display on the end screen.
+function computeStats() {
+  const total = LOCATIONS.length;
+  const visited = LOCATIONS.filter(loc => state.visited.has(loc.id)).length;
+  const poofoAccuracyPct = state.poofoConsultCount > 0
+    ? Math.round((state.poofoCorrectCount / state.poofoConsultCount) * 100)
+    : null;
+
+  return {
+    visited,
+    total,
+    penaltyPoints: state.penaltyPoints,
+    poofoConsultCount: state.poofoConsultCount,
+    poofoAccuracyPct,
+  };
+}
+
+function buildStatsBox(stats) {
+  const box = el('div', 'stats-box');
+  const list = el('ul', 'stats-list');
+  const accuracyText = stats.poofoAccuracyPct === null ? '—' : stats.poofoAccuracyPct + '%';
+  [
+    `Locations visited: ${stats.visited}/${stats.total}`,
+    `Penalty points: ${stats.penaltyPoints}`,
+    `Local Poofo consultations: ${stats.poofoConsultCount}`,
+    `Local Poofo accuracy: ${accuracyText}`,
+  ].forEach(text => list.appendChild(el('li', null, text)));
+  box.appendChild(list);
+
+  return box;
+}
+
 // Appends the win/game-over result to the bottom of the feed, styled like
 // a location entry (image, title, message) but with a "Play Again" button
 // in place of choices, so the player's full journey stays visible above it.
@@ -1102,6 +1165,8 @@ function appendEndEntry(type, message) {
   const info = END_TEXT[type];
   const { entry, body } = buildEntryCard('location-entry end-entry', info.image, info.title,
     info.title, message || info.message);
+
+  body.appendChild(buildStatsBox(computeStats()));
 
   const restartBtn = el('button', 'primary-btn', 'Play Again');
   restartBtn.addEventListener('click', newGame);
@@ -1200,6 +1265,9 @@ function renderPoofo(location, buttonMap, poofoEl) {
       const others = location.choices.filter(c => c !== correct);
       if (others.length > 0) highlighted = others[randomInt(0, others.length - 1)];
     }
+
+    state.poofoConsultCount += 1;
+    if (highlighted === correct) state.poofoCorrectCount += 1;
 
     hintText.textContent = hint.text;
     buttonMap.forEach(buttonEl => {
