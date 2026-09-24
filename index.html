@@ -297,6 +297,16 @@
     padding: 14px 16px;
   }
 
+  .consequence-image {
+    display: block;
+    width: 100%;
+    max-width: 320px;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    border-radius: 6px;
+    margin: 0 auto 12px;
+  }
+
   .consequence-message {
     color: var(--text-dim);
     margin: 0 0 6px;
@@ -321,7 +331,7 @@
     color: var(--danger-text-dim);
   }
 
-  /* "You travel N miles..." always renders below/outside the penalty box
+  /* "Travelling ... N miles" always renders below/outside the penalty box
      (it's a sibling of .consequence-box, not a child), with generous
      space above it and left-justified rather than centered. */
   .travel-status {
@@ -330,8 +340,8 @@
   }
 
   /* Dot slots are always present (reserving their width) and just toggle
-     visibility, so the "You travel N miles" label never shifts position
-     as the ellipsis fills in. */
+     visibility, so "Travelling" never shifts position as the ellipsis
+     fills in. */
   .travel-dot {
     opacity: 0;
   }
@@ -700,7 +710,7 @@ const LOCATIONS = [
     zone: 3, weight: 1,
     choices: [
       { label: 'Keep your opinions to yourself', outcome: { type: 'normal', text: 'Gallant would approve.  You journey onward.' } },
-      { label: 'Inquire at the replay booth', outcome: { type: 'gameover', text: 'YEETTTIIIIIIIIIIIIII!!!!!!!   Thanks for coming up!' } },
+      { label: 'Inquire at the replay booth', outcome: { type: 'gameover', text: 'YEETTTIIIIIIIIIIIIII!!!!!!!   Thanks for coming up!', image: 'images/yetiBig.jpeg' } },
     ],
   },
 ];
@@ -725,6 +735,43 @@ const END_TEXT = {
    Game state and logic. Shouldn't need to change this to edit content.
    ========================================================================= */
 
+// Frequently-used DOM anchors, looked up once.
+const sceneEl = document.getElementById('scene');
+const sceneFeedEl = document.getElementById('scene-feed');
+const progressFillEl = document.getElementById('progress-fill');
+const penaltyPointsEl = document.getElementById('penalty-points');
+const zoneMarkersEl = document.getElementById('zone-markers');
+
+// Creates an element, optionally setting its className and textContent.
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+function img(className, src, alt) {
+  const node = el('img', className);
+  node.src = src;
+  node.alt = alt;
+  return node;
+}
+
+// Builds the "image, title, description" card shared by location entries,
+// end screens, and the debug outcome-image gallery. Callers append
+// whatever else belongs in the body (choices, buttons, ...).
+function buildEntryCard(entryClassName, imageSrc, imageAlt, title, description) {
+  const entry = el('div', entryClassName);
+  entry.appendChild(img('entry-image', imageSrc, imageAlt));
+
+  const body = el('div', 'entry-body');
+  body.appendChild(el('h2', 'entry-name', title));
+  body.appendChild(el('p', 'entry-description', description));
+  entry.appendChild(body);
+
+  return { entry, body };
+}
+
 let state;
 
 // Debug mode (?debug=true in the URL) dumps every location plus both end
@@ -745,7 +792,7 @@ function newGame() {
     ended: false,
     gaveCrypto: false,
   };
-  document.getElementById('scene-feed').innerHTML = '';
+  sceneFeedEl.innerHTML = '';
   appendLocationEntry(INTRO_LOCATION);
   updateHud();
 
@@ -880,32 +927,26 @@ function resolveChoice(choice, entryEl) {
 function appendConsequence(entryEl, outcome, distance, onContinue) {
   const body = entryEl.querySelector('.entry-body');
 
-  const consequence = document.createElement('div');
-  consequence.className = 'consequence';
+  const consequence = el('div', 'consequence');
 
   // The message/detail/button live in their own box so that a later
   // appended "You travel N miles..." status (a sibling of this box, not a
   // child of it) renders below/outside the penalty highlight instead of
   // inside it.
-  const box = document.createElement('div');
-  box.className = 'consequence-box consequence-box-' + outcome.type;
+  const box = el('div', 'consequence-box consequence-box-' + outcome.type);
   consequence.appendChild(box);
 
-  const message = document.createElement('p');
-  message.className = 'consequence-message';
-  message.textContent = outcome.text;
-  box.appendChild(message);
-
-  if (outcome.type === 'penalty') {
-    const detailEl = document.createElement('p');
-    detailEl.className = 'consequence-detail';
-    detailEl.textContent = "(that's a penalty point)";
-    box.appendChild(detailEl);
+  if (outcome.image) {
+    box.appendChild(img('consequence-image', outcome.image, outcome.text));
   }
 
-  const continueBtn = document.createElement('button');
-  continueBtn.className = 'primary-btn';
-  continueBtn.textContent = outcome.type === 'gameover' ? 'Game Over' : 'Continue';
+  box.appendChild(el('p', 'consequence-message', outcome.text));
+
+  if (outcome.type === 'penalty') {
+    box.appendChild(el('p', 'consequence-detail', "(that's a penalty point)"));
+  }
+
+  const continueBtn = el('button', 'primary-btn', outcome.type === 'gameover' ? 'Game Over' : 'Continue');
   continueBtn.addEventListener('click', () => {
     continueBtn.disabled = true;
 
@@ -923,48 +964,53 @@ function appendConsequence(entryEl, outcome, distance, onContinue) {
   scrollFeedToBottom();
 }
 
-// How long the "You travel N miles..." status shows, with an ellipsis
-// that fills in one dot at a time, before onDone runs.
-const TRAVEL_PAUSE_MS = 2000;
+// "Travelling ..." plays first, dots filling in quickly. Once
+// MILES_REVEAL_DELAY_MS has passed, " N miles" is appended to the end: the
+// full text then lingers for TRAVEL_LINGER_MS before onDone runs.
+const DOT_COUNT = 6;
+const DOT_INTERVAL_MS = 150;
+const MILES_REVEAL_DELAY_MS = 1500;
+const TRAVEL_LINGER_MS = 500;
 
 function playTravelStatus(container, distance, onDone) {
-  const dotCount = 3;
+  const statusEl = el('p', 'consequence-detail travel-status');
+  statusEl.appendChild(el('span', null, 'Travelling'));
 
-  const statusEl = document.createElement('p');
-  statusEl.className = 'consequence-detail travel-status';
-
-  const label = document.createElement('span');
-  label.textContent = `You travel ${distance} miles`;
-  statusEl.appendChild(label);
-
-  // All three dot slots are rendered (and take up their layout space) from
-  // the start, just invisible — that way the reserved width never changes
-  // as dots turn on, so the label doesn't recenter/shift mid-animation.
+  // All dot slots are rendered (and take up their layout space) from the
+  // start, just invisible — that way the reserved width never changes as
+  // dots turn on, so the label doesn't recenter/shift mid-animation.
   const dotEls = [];
-  for (let i = 0; i < dotCount; i++) {
-    const dot = document.createElement('span');
-    dot.className = 'travel-dot';
-    dot.textContent = '.';
+  for (let i = 0; i < DOT_COUNT; i++) {
+    const dot = el('span', 'travel-dot', '.');
     statusEl.appendChild(dot);
     dotEls.push(dot);
   }
 
+  const milesEl = el('span');
+  statusEl.appendChild(milesEl);
+
   container.appendChild(statusEl);
   scrollFeedToBottom();
 
-  const dotInterval = TRAVEL_PAUSE_MS / dotCount;
   let shown = 0;
   const dotTimer = setInterval(() => {
     if (shown < dotEls.length) {
       dotEls[shown].classList.add('travel-dot-visible');
       shown += 1;
+    } else {
+      clearInterval(dotTimer);
     }
-  }, dotInterval);
+  }, DOT_INTERVAL_MS);
+
+  setTimeout(() => {
+    milesEl.textContent = ` ${distance} miles`;
+    scrollFeedToBottom();
+  }, MILES_REVEAL_DELAY_MS);
 
   setTimeout(() => {
     clearInterval(dotTimer);
     onDone();
-  }, TRAVEL_PAUSE_MS);
+  }, MILES_REVEAL_DELAY_MS + TRAVEL_LINGER_MS);
 }
 
 // Shown once whenever the player's progress crosses into a new zone.
@@ -973,53 +1019,34 @@ function playTravelStatus(container, distance, onDone) {
 // Rendered directly into the scrolling feed (rather than a modal),
 // demarcated with generous vertical spacing and a double "===" divider.
 function appendZoneTransitionEntry(zone, onContinue) {
-  const feed = document.getElementById('scene-feed');
   const divider = '='.repeat(48);
 
-  const entry = document.createElement('div');
-  entry.className = 'zone-transition';
+  const entry = el('div', 'zone-transition');
 
   [1, 2].forEach(() => {
-    const dividerLine = document.createElement('div');
-    dividerLine.className = 'zone-divider';
-    dividerLine.textContent = divider;
-    entry.appendChild(dividerLine);
+    entry.appendChild(el('div', 'zone-divider', divider));
   });
 
-  const title = document.createElement('h2');
-  title.className = 'zone-transition-title';
-  title.textContent = `Entering new territory`;
-  entry.appendChild(title);
+  entry.appendChild(el('h2', 'zone-transition-title', 'Entering new territory'));
+  entry.appendChild(el('p', 'zone-transition-message',
+    'A beep on your FoFynder app indicates you are now in a different Local Poofo area.'));
 
-  const message = document.createElement('p');
-  message.className = 'zone-transition-message';
-  message.textContent = 'A beep on your FoFynder app indicates you are now in a different Local Poofo area.';
-  entry.appendChild(message);
-
-  const actions = document.createElement('div');
-  actions.className = 'zone-transition-actions';
+  const actions = el('div', 'zone-transition-actions');
   entry.appendChild(actions);
 
-  const largeBtn = document.createElement('button');
-  largeBtn.className = 'primary-btn';
-  largeBtn.textContent = 'Send crypto to the local Poofo';
-  const smallBtn = document.createElement('button');
-  smallBtn.className = 'primary-btn';
-  smallBtn.textContent = 'Say an oath';
+  const largeBtn = el('button', 'primary-btn', 'Send crypto to the local Poofo');
+  const smallBtn = el('button', 'primary-btn', 'Say an oath');
   actions.appendChild(largeBtn);
   actions.appendChild(smallBtn);
 
-  feed.appendChild(entry);
+  sceneFeedEl.appendChild(entry);
   scrollFeedToBottom();
 
   function choose(buttonEl) {
     largeBtn.disabled = true;
     smallBtn.disabled = true;
 
-    const choiceEl = document.createElement('p');
-    choiceEl.className = 'zone-transition-choice';
-    choiceEl.textContent = `You chose: ${buttonEl.textContent}`;
-    entry.appendChild(choiceEl);
+    entry.appendChild(el('p', 'zone-transition-choice', `You chose: ${buttonEl.textContent}`));
 
     scrollFeedToBottom();
     onContinue();
@@ -1037,59 +1064,28 @@ function endGame(type, message) {
 /* ---- Rendering ---- */
 
 function scrollFeedToBottom() {
-  const scene = document.getElementById('scene');
-  scene.scrollTop = scene.scrollHeight;
+  sceneEl.scrollTop = sceneEl.scrollHeight;
 }
 
 // Appends a new location card (image, name, description, choices, Poofo)
 // to the bottom of the scrolling feed.
 function appendLocationEntry(location) {
-  const feed = document.getElementById('scene-feed');
+  const { entry, body } = buildEntryCard('location-entry', location.image, location.name,
+    location.name, location.description);
 
-  const entry = document.createElement('div');
-  entry.className = 'location-entry';
-
-  const img = document.createElement('img');
-  img.className = 'entry-image';
-  img.src = location.image;
-  img.alt = location.name;
-  entry.appendChild(img);
-
-  const body = document.createElement('div');
-  body.className = 'entry-body';
-
-  const name = document.createElement('h2');
-  name.className = 'entry-name';
-  name.textContent = location.name;
-  body.appendChild(name);
-
-  const description = document.createElement('p');
-  description.className = 'entry-description';
-  description.textContent = location.description;
-  body.appendChild(description);
-
-  const choicesEl = document.createElement('div');
-  choicesEl.className = 'entry-choices';
+  const choicesEl = el('div', 'entry-choices');
   body.appendChild(choicesEl);
 
-  const poofoEl = document.createElement('div');
-  poofoEl.className = 'entry-poofo hidden';
+  const poofoEl = el('div', 'entry-poofo hidden');
   body.appendChild(poofoEl);
 
-  entry.appendChild(body);
-  feed.appendChild(entry);
+  sceneFeedEl.appendChild(entry);
 
   const buttonMap = new Map();
   location.choices.forEach(choice => {
-    const btn = document.createElement('button');
-    btn.className = 'choice-btn';
-    const label = document.createElement('span');
-    label.className = 'choice-label';
-    label.textContent = choice.label;
-    const fill = document.createElement('span');
-    fill.className = 'choice-fill';
-    btn.appendChild(label);
-    btn.appendChild(fill);
+    const btn = el('button', 'choice-btn');
+    btn.appendChild(el('span', 'choice-label', choice.label));
+    btn.appendChild(el('span', 'choice-fill'));
     btn.addEventListener('click', () => selectChoice(choice, btn, buttonMap, entry));
     choicesEl.appendChild(btn);
     buttonMap.set(choice, btn);
@@ -1104,38 +1100,14 @@ function appendLocationEntry(location) {
 // in place of choices, so the player's full journey stays visible above it.
 function appendEndEntry(type, message) {
   const info = END_TEXT[type];
-  const feed = document.getElementById('scene-feed');
+  const { entry, body } = buildEntryCard('location-entry end-entry', info.image, info.title,
+    info.title, message || info.message);
 
-  const entry = document.createElement('div');
-  entry.className = 'location-entry end-entry';
-
-  const img = document.createElement('img');
-  img.className = 'entry-image';
-  img.src = info.image;
-  img.alt = info.title;
-  entry.appendChild(img);
-
-  const body = document.createElement('div');
-  body.className = 'entry-body';
-
-  const name = document.createElement('h2');
-  name.className = 'entry-name';
-  name.textContent = info.title;
-  body.appendChild(name);
-
-  const description = document.createElement('p');
-  description.className = 'entry-description';
-  description.textContent = message || info.message;
-  body.appendChild(description);
-
-  const restartBtn = document.createElement('button');
-  restartBtn.className = 'primary-btn';
-  restartBtn.textContent = 'Play Again';
+  const restartBtn = el('button', 'primary-btn', 'Play Again');
   restartBtn.addEventListener('click', newGame);
   body.appendChild(restartBtn);
 
-  entry.appendChild(body);
-  feed.appendChild(entry);
+  sceneFeedEl.appendChild(entry);
   scrollFeedToBottom();
 }
 
@@ -1145,6 +1117,23 @@ function appendDebugGallery() {
   LOCATIONS.forEach(appendLocationEntry);
   appendEndEntry('win', END_TEXT.win.goodMessage);
   appendEndEntry('gameover', END_TEXT.gameover.message);
+  appendOutcomeImageGallery();
+}
+
+// Appends one entry per choice outcome that has its own image, so those
+// (e.g. a gameover twist image) can be eyeballed alongside the location
+// and end-screen artwork above.
+function appendOutcomeImageGallery() {
+  LOCATIONS.forEach(location => {
+    location.choices.forEach(choice => {
+      const outcome = choice.outcome;
+      if (!outcome.image) return;
+
+      const { entry } = buildEntryCard('location-entry', outcome.image, outcome.text,
+        location.name + ' — ' + choice.label, outcome.text);
+      sceneFeedEl.appendChild(entry);
+    });
+  });
 }
 
 // How long the pulse + fill-bar animation plays before the consequence
@@ -1180,6 +1169,12 @@ const POOFO_ICON_SVG = `
   <circle cx="12" cy="15" r="0.8" fill="currentColor"/>
 </svg>`.trim();
 
+function makePoofoIcon() {
+  const icon = el('span', 'poofo-icon');
+  icon.innerHTML = POOFO_ICON_SVG;
+  return icon;
+}
+
 function renderPoofo(location, buttonMap, poofoEl) {
   poofoEl.innerHTML = '';
   poofoEl.classList.add('hidden');
@@ -1189,18 +1184,11 @@ function renderPoofo(location, buttonMap, poofoEl) {
 
   poofoEl.classList.remove('hidden');
 
-  const btn = document.createElement('button');
-  btn.className = 'poofo-btn';
-  const btnLabel = document.createElement('span');
-  btnLabel.textContent = 'Consult the local Poofo';
-  const btnIcon = document.createElement('span');
-  btnIcon.className = 'poofo-icon';
-  btnIcon.innerHTML = POOFO_ICON_SVG;
-  btn.appendChild(btnLabel);
-  btn.appendChild(btnIcon);
+  const btn = el('button', 'poofo-btn');
+  btn.appendChild(el('span', null, 'Consult the local Poofo'));
+  btn.appendChild(makePoofoIcon());
 
-  const hintText = document.createElement('p');
-  hintText.className = 'poofo-hint';
+  const hintText = el('p', 'poofo-hint');
 
   btn.addEventListener('click', () => {
     const hint = pickWeighted(POOFO_HINTS, h => h.weight || 1);
@@ -1222,10 +1210,7 @@ function renderPoofo(location, buttonMap, poofoEl) {
     const targetBtn = buttonMap.get(highlighted);
     if (targetBtn) {
       targetBtn.classList.add('poofo-highlight');
-      const icon = document.createElement('span');
-      icon.className = 'poofo-icon';
-      icon.innerHTML = POOFO_ICON_SVG;
-      targetBtn.appendChild(icon);
+      targetBtn.appendChild(makePoofoIcon());
     }
     btn.disabled = true;
   });
@@ -1237,30 +1222,25 @@ function renderPoofo(location, buttonMap, poofoEl) {
 // Draws a tick on the progress bar at the start of each zone after the
 // first (zone boundaries never move, so this only needs to run once).
 function renderZoneMarkers() {
-  const markersEl = document.getElementById('zone-markers');
-  markersEl.innerHTML = '';
+  zoneMarkersEl.innerHTML = '';
   ZONES.slice(1).forEach(zone => {
-    const marker = document.createElement('div');
-    marker.className = 'zone-marker';
+    const marker = el('div', 'zone-marker');
     marker.style.left = (zone.min / CONFIG.winDistance) * 100 + '%';
     marker.title = `${zone.name} begins`;
-    markersEl.appendChild(marker);
+    zoneMarkersEl.appendChild(marker);
   });
 }
 
 function updateProgressBar() {
   const pct = Math.min(100, (state.progress / CONFIG.winDistance) * 100);
-  document.getElementById('progress-fill').style.width = pct + '%';
+  progressFillEl.style.width = pct + '%';
 }
 
 function updatePenaltyHud() {
-  const penaltyEl = document.getElementById('penalty-points');
-  penaltyEl.innerHTML = '';
+  penaltyPointsEl.innerHTML = '';
   for (let i = 0; i < CONFIG.maxPenaltyPoints; i++) {
-    const span = document.createElement('span');
-    span.textContent = '✗';
-    span.className = i < state.penaltyPoints ? 'penalty-mark-full' : 'penalty-mark-empty';
-    penaltyEl.appendChild(span);
+    const className = i < state.penaltyPoints ? 'penalty-mark-full' : 'penalty-mark-empty';
+    penaltyPointsEl.appendChild(el('span', className, '✗'));
   }
 }
 
