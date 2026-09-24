@@ -512,9 +512,9 @@ const ZONES = [
 // one. Edit text/accuracy/weight freely, and add or remove entries.
 const POOFO_HINTS = [
   { text: 'The Poofo seems sure of himself.', accuracy: 0.9 },
-  { text: 'The Poofo mumbles something, but you\'re not sure if he\'s awake.', accuracy: 0.5 },
-  { text: 'The Poofo gives advice, but seems more interested in his off-track betting app.', accuracy: 0.1 },
-  { text: 'The Poofo mutters advice, but is mostly busy checking his crypto portFOlio.', accuracy: 0.1 },
+  { text: 'The Poofo mumbles something while half-awake.', accuracy: 0.6 },
+  { text: 'The Poofo gives advice, but seems more interested in his off-track betting app.', accuracy: 0.3 },
+  { text: 'The Poofo barely looks up from checking his crypto portFOlio.', accuracy: 0.1 },
 ];
 
 // Each choice has a single, fixed outcome (no randomness in *what*
@@ -1281,6 +1281,11 @@ function renderPoofo(location, buttonMap, poofoEl) {
       targetBtn.appendChild(makePoofoIcon());
     }
     btn.disabled = true;
+
+    // The hint can land below the current scroll position (e.g. if the
+    // player scrolled up to reread the description), so bring it into
+    // view instead of leaving it to be scrolled to manually.
+    hintText.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   });
 
   poofoEl.appendChild(btn);
