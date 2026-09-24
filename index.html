@@ -560,8 +560,8 @@ const LOCATIONS = [
     description: 'You don\'t really know what this is...',
     zone: 1, weight: 1,
     choices: [
-      { label: 'Continue on', outcome: { type: 'normal', text: 'You continue.' } },
-      { label: 'Frolic', outcome: { type: 'normal', text: 'You frolic, then continue.' } },
+      { label: 'Continue on', outcome: { type: 'normal', text: 'Yeah, let\'s go somewhere more interesting...' } },
+      { label: 'Frolic', outcome: { type: 'normal', text: '"Mo-lar bear"  Everyone is happy.' } },
     ],
   },
   {
@@ -580,7 +580,7 @@ const LOCATIONS = [
     description: 'It\'s a taping of WWYV at an offsite location!  You\'re excited to get involved.',
     zone: 1, weight: 1,
     choices: [
-      { label: 'Watch the taping', outcome: { type: 'normal', text: 'You learn some helpful Vatching tips, and then move on...' } },
+      { label: 'Watch the taping', outcome: { type: 'normal', text: 'You learn some helpful Vatching tips.' } },
       { label: 'Volunteer as a contestant', outcome: { type: 'penalty', text: 'You make poor choices involving the SnoKids.  "to ... the ... Vatch-it Pit."' } },
     ],
   },
@@ -621,7 +621,7 @@ const LOCATIONS = [
     choices: [
       { label: 'Order a small gyro', outcome: { type: 'heal', text: 'Tasty! You compliment the owner and move on' } },
       { label: 'Order a gigantamungous gyro', outcome: { type: 'penalty', text: '<<shred shred>> "Rrrrr... That\'s my size"' } },
-      { label: 'Chat with the staffer', outcome: { type: 'penalty', text: 'You ignore Humph\'s yawns and give an extensive digression on your ideas for college football ranking systems.  Humph exhales in your face to get you to leave.' } },
+      { label: 'Chat with the staffer', outcome: { type: 'penalty', text: 'You ignore Humph\'s yawns and go on a rant about bias in college football ranking systems.  Humph exhales in your face to get you to leave.' } },
     ],
   },
   {
@@ -630,7 +630,7 @@ const LOCATIONS = [
     zone: 2, weight: 1,
     choices: [
       { label: 'See what\'s playing', outcome: { type: 'penalty', text: 'Ooof, too much MacGyver/Match Game split screen.' } },
-      { label: 'Keep walking', outcome: { type: 'normal', text: 'The FCC arrives just after you walk away...' } },
+      { label: 'Keep walking', outcome: { type: 'normal', text: 'You get away just before the FCC arrives...' } },
     ],
   },
   {
@@ -638,7 +638,7 @@ const LOCATIONS = [
     description: 'You arrive at a large warehouse. Trucks are loading and unloading frozen foods.',
     zone: 2, weight: 1,
     choices: [
-      { label: 'Go inside', outcome: { type: 'penalty', text: '"I say!  You\'re not allowed in here"' } },
+      { label: 'Go inside', outcome: { type: 'penalty', text: '"I say!  You\'re not allowed in here"', image: "images/tux.jpeg" } },
       { label: 'Hitch a ride on a truck', outcome: { type: 'normal', text: 'You hitch a ride on one of the trucks. The truck advertises that it "brings you fruits and vegetables"' } },
     ],
   },
